@@ -17,6 +17,5 @@ public class SkillFragility : SkillData
         EventManager.onCreatureSpawn -= OnCreatureSpawn;
     }
 
-
     private void OnCreatureSpawn(Creature creature) => creature.brain.instance.GetModule<BrainModuleCrystal>().allowBreakForce = true;
 }

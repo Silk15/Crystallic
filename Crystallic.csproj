@@ -15,9 +15,8 @@
         <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <PlatformTarget>AnyCPU</PlatformTarget>
         <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
+        <DebugType>portable</DebugType>
         <Optimize>false</Optimize>
         <OutputPath>bin\Debug\</OutputPath>
         <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -34,6 +33,9 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <ItemGroup>
+        <Reference Include="Oculus.VR">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Oculus.VR.dll</HintPath>
+        </Reference>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
@@ -41,11 +43,35 @@
         <Reference Include="ThunderRoad">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\ThunderRoad.dll</HintPath>
         </Reference>
+        <Reference Include="ThunderRoad.MaterialInstance">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\ThunderRoad.MaterialInstance.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.ResourceManager">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Unity.ResourceManager.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.Interaction.Toolkit">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Unity.XR.Interaction.Toolkit.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.Management">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Unity.XR.Management.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.Oculus">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Unity.XR.Oculus.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.OpenVR">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Unity.XR.OpenVR.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.AnimationModule">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.AudioModule">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.ImageConversionModule">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.ParticleSystemModule">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
@@ -53,11 +79,21 @@
         <Reference Include="UnityEngine.PhysicsModule">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.SubsystemsModule">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.SubsystemsModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.VFXModule">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.VFXModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.VRModule">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.XRModule">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\UnityEngine.XRModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="ArcPointsManager.cs" />
         <Compile Include="BrainModuleCrystal.cs" />
         <Compile Include="ColorType.cs" />
         <Compile Include="CrystallisationExtensions.cs" />
@@ -73,26 +109,38 @@
         <Compile Include="Lerper.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
         <Compile Include="ReflectiveParticles.cs" />
-        <Compile Include="Skill\ImbueBehaviour.cs" />
-        <Compile Include="Skill\ImbueFireBehaviour.cs" />
-        <Compile Include="Skill\ImbueGravityBehaviour.cs" />
+        <Compile Include="Skill\Imbue\CrystalImbueSkillData.cs" />
+        <Compile Include="Skill\Imbue\ImbueBehaviour.cs" />
+        <Compile Include="Skill\Imbue\ImbueFireBehaviour.cs" />
+        <Compile Include="Skill\Imbue\ImbueGravityBehaviour.cs" />
+        <Compile Include="Skill\Imbue\ImbueLightningBehaviour.cs" />
+        <Compile Include="Skill\JointEffect.cs" />
         <Compile Include="Skill\Shard.cs" />
-        <Compile Include="Skill\SkillAttunementHandler.cs" />
-        <Compile Include="Skill\SkillCrystalImbueHandler.cs" />
+        <Compile Include="Skill\SkillCrystallineDarts.cs" />
         <Compile Include="Skill\SkillFragility.cs" />
-        <Compile Include="Skill\SkillReflection.cs" />
         <Compile Include="Skill\SpellMerge\SpellMergeCrystallic.cs" />
+        <Compile Include="Skill\Spell\Attunement\AttunementRuneBehaviour.cs" />
+        <Compile Include="Skill\Spell\Attunement\AttunementSkillData.cs" />
+        <Compile Include="Skill\Spell\Attunement\SkillArcfan.cs" />
+        <Compile Include="Skill\Spell\Attunement\SkillLithotether.cs" />
+        <Compile Include="Skill\Spell\SkillShardImplosion.cs" />
+        <Compile Include="Skill\Spell\SkillCrystalReservoir.cs" />
+        <Compile Include="Skill\Spell\SkillCrystalSapping.cs" />
+        <Compile Include="Skill\Spell\SkillRotaryShardshot.cs" />
         <Compile Include="Skill\Spell\SpellCastCrystallic.cs" />
         <Compile Include="StatusDataCrystallised.cs" />
         <Compile Include="Utils.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
-    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-         Other similar extension points exist, see Microsoft.Common.targets.
-    <Target Name="BeforeBuild">
-    </Target>
     <Target Name="AfterBuild">
-    </Target>
-    -->
+        <Copy
+                SourceFiles="$(TargetDir)$(TargetName).dll"
+                DestinationFiles="$(BladeAndSorceryPath)\BladeAndSorcery_Data\StreamingAssets\Mods\$(ProjectName)\$(TargetFileName)"
+                OverwriteReadOnlyFiles="true" />
 
+        <Copy
+                SourceFiles="$(TargetDir)$(TargetName).pdb"
+                DestinationFiles="$(BladeAndSorceryPath)\BladeAndSorcery_Data\StreamingAssets\Mods\$(ProjectName)\$(TargetName).pdb"
+                OverwriteReadOnlyFiles="true" />
+    </Target>
 </Project>

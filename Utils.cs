@@ -5,10 +5,21 @@ using System.Linq;
 using System.Reflection;
 using ThunderRoad;
 using UnityEngine;
+using UnityEngine.XR;
 using Random = UnityEngine.Random;
 
 public static class Utils
 {
+    public static int GetProjectileRaycastMask()
+    {
+        int raycastMask = 0;
+        raycastMask |= 1 << GameManager.GetLayer(LayerName.Default);
+        raycastMask |= 1 << GameManager.GetLayer(LayerName.PlayerLocomotionObject);
+        raycastMask |= 1 << GameManager.GetLayer(LayerName.NPC);
+        raycastMask |= 1 << GameManager.GetLayer(LayerName.Ragdoll);
+        return raycastMask;
+    }
+    
     public static bool Validate(Func<bool> predicate, Action onTrue = null, Action onFalse = null)
     {
         if (predicate())
@@ -83,6 +94,26 @@ public static class Utils
     {
         Player.local.locomotion.velocity = direction.normalized * Player.local.locomotion.velocity.magnitude;
         Player.local.locomotion.physicBody.AddForce(direction.normalized * speed, ForceMode.VelocityChange);
+    }
+    
+    public static Vector3 GetRandomVelocityInCone(Vector3 centerDirection, float coneAngle, float magnitude, float minAngle = 0f)
+    {
+        centerDirection.Normalize();
+
+        float angle = UnityEngine.Random.Range(minAngle, coneAngle);
+        float angleInRads = angle * Mathf.Deg2Rad;
+        float azimuthAngle = UnityEngine.Random.Range(0f, 2f * Mathf.PI);
+
+        Vector3 randomDirection = new Vector3(
+            Mathf.Cos(azimuthAngle) * Mathf.Sin(angleInRads),
+            Mathf.Sin(azimuthAngle) * Mathf.Sin(angleInRads),
+            Mathf.Cos(angleInRads)
+        );
+
+        Quaternion rotation = Quaternion.FromToRotation(Vector3.forward, centerDirection);
+        randomDirection = rotation * randomDirection;
+
+        return randomDirection * magnitude;
     }
 
     public static Vector3 GetRandomDirectionInCone(Vector3 forward, float angleDegrees)

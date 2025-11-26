@@ -6,34 +6,39 @@ namespace Crystallic;
 
 public class ItemModuleCrystalVfx : ItemModule
 {
-    public override void OnItemLoaded(Item item)
+    public static readonly int SourceColor = Shader.PropertyToID("Source Color");
+    
+    public override void OnItemLoaded(Item thisItem)
     {
-        base.OnItemLoaded(item);
-        Item.OnItemSpawn -= OnItemSpawn;
-        Item.OnItemSpawn += OnItemSpawn;
-    }
-
-    private void OnItemSpawn(Item item)
-    {
-        if (item.data.id != itemData.id) return;
-        Catalog.GetData<ItemData>("CrystalBodyT1").SpawnAsync(item1 =>
+        base.OnItemLoaded(thisItem);
+        Catalog.GetData<ItemData>("CrystalBodyT1").SpawnAsync(bodyItem =>
         {
-            if (item1.TryGetComponent(out SkillTreeCrystal originalCrystal) && item.TryGetComponent(out SkillTreeCrystal thisCrystal))
+            SkillTreeCrystal thisCrystal = thisItem.GetComponent<SkillTreeCrystal>();
+            SkillTreeCrystal bodyCrystal = bodyItem.GetComponent<SkillTreeCrystal>();
+            
+            if (thisCrystal == null)
             {
-                GameObject parent = new GameObject("VFX");
-                parent.transform.SetParent(item.transform);
-                parent.transform.localPosition = Vector3.zero;
-                parent.transform.localRotation = Quaternion.identity;
-                thisCrystal.SetField("mergeVfx", GameObject.Instantiate(originalCrystal.mergeVfxWindows, parent.transform));
-                thisCrystal.SetField("linkVfx", GameObject.Instantiate(originalCrystal.linkVfxWindows, parent.transform));
-                thisCrystal.SetField("mergeVfxTarget", parent.transform.GetChildrenByNameRecursive("Target")[0]);
-                thisCrystal.SetField("linkVfxTarget", parent.transform.GetChildrenByNameRecursive("Target")[1]);
-                var mergeVfx = thisCrystal.GetField("mergeVfx") as VisualEffect;
-                var linkVfx = thisCrystal.GetField("linkVfx") as VisualEffect;
-                mergeVfx?.SetVector4("Source Color", thisCrystal.skillTreeEmissionColor);
-                linkVfx?.SetVector4("Source Color", thisCrystal.skillTreeEmissionColor);
-                item1.Despawn(0.1f);
+                Debug.LogError($"[Crystallic] No SkillTreeCrystal component found on item: {itemData.id}!");
+                return;
             }
+
+            GameObject visualEffectParent = Object.Instantiate(Common.IsWindows ? bodyCrystal.linkVfxWindows.transform.parent.gameObject : bodyCrystal.linkVfxAndroid.transform.parent.gameObject, thisCrystal.transform);
+            visualEffectParent.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+            var linkVfx = visualEffectParent.transform.GetChild(1).GetComponent<VisualEffect>();
+            var mergeVfx = visualEffectParent.transform.GetChild(0).GetComponent<VisualEffect>();
+
+            var linkVfxTarget = linkVfx.transform.GetChild(1);
+            var mergeVfxTarget = mergeVfx.transform.GetChild(1);
+
+            thisCrystal.linkVfx = linkVfx;
+            thisCrystal.mergeVfx = mergeVfx;
+            thisCrystal.linkVfxTarget = linkVfxTarget;
+            thisCrystal.mergeVfxTarget = mergeVfxTarget;
+            
+            linkVfx.SetVector4(SourceColor, thisCrystal.skillTreeEmissionColor);
+            mergeVfx.SetVector4(SourceColor, thisCrystal.skillTreeEmissionColor);
+            bodyItem.Despawn();
         });
     }
 }

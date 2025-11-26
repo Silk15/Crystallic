@@ -16,7 +16,7 @@ public class Crystallised : Status
         if (entity is Creature creature)
         {
             brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
-            brainModuleCrystal.Crystallise();
+            brainModuleCrystal.StartCrystallise();
         }
     }
 

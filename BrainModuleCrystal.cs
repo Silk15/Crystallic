@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ThunderRoad;
+using UnityEngine.XR;
 using ThunderRoad.Skill;
 using UnityEngine;
 
@@ -9,11 +11,20 @@ namespace Crystallic;
 
 public class BrainModuleCrystal : BrainData.Module
 {
+    [ModOption("Allow Crystallisation", "Controls whether any entity can be crystallised, by any source.", order = 0), ModOptionCategory("Crystallisation", -1)]
+    public static bool allowCrystallisation = true;
+    
+    [ModOption("Allow Player Crystallisation", "Controls whether the player can be crystallised, by any source.", order = 1), ModOptionCategory("Crystallisation", -1)]
+    public static bool allowPlayerCrystallisation = true;
+    
+    [ModOption("Max Crystallisation Particles", "Controls the maximum amount of particles the crystallisation Vfx can display at one time.", order = 3), ModOptionSlider, ModOptionCategory("Crystallisation", -1), ModOptionIntValues(10, 50, 1)]
+    public static int maxParticles = 35;
+    
     public List<BoneEffectPair> boneEffectPairs = new();
     public List<EffectInstance> instances = new();
     public Coroutine crystalliseCoroutine;
+    public BoneEffectPair currentBoneMap;
     public EffectData endEffectData;
-    public BoneEffectPair selected;
     public Lerper lerper;
     
     public bool allowBreakForce;
@@ -21,10 +32,7 @@ public class BrainModuleCrystal : BrainData.Module
     
     public event OnCrystalliseStart onCrystalliseStart;
     public event OnCrystalliseStop onCrystalliseStop;
-    
-    public delegate void OnCrystalliseStart(Creature callback);
-
-    public delegate void OnCrystalliseStop(Creature callback);
+    public event Action onParticleCountUpdated;
 
     public override void Load(Creature creature)
     {
@@ -33,25 +41,23 @@ public class BrainModuleCrystal : BrainData.Module
         foreach (var creatureBones in boneEffectPairs)
             if (creatureBones.creatureIds.Contains(creature.creatureId))
             {
-                selected = creatureBones;
-                selected.Load(creature);
+                currentBoneMap = creatureBones;
+                currentBoneMap.Load(creature);
             }
-
         endEffectData = Catalog.GetData<EffectData>("CrystallisationEnd");
         creature.OnDespawnEvent += OnDespawnEvent;
     }
     
-    public void EnableBreakForce() => allowBreakForce = true;
-
     private void OnDespawnEvent(EventTime eventTime)
     {
         if (eventTime == EventTime.OnEnd) return;
-        SetColor(Color.white, "Crystallic", 0.01f);
+        SetColor(Color.white, "Crystallic", 0.05f);
         creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(this);
         creature.locomotion.allowMove = true;
         creature.locomotion.allowTurn = true;
         creature.RemoveDamageMultiplier(this);
         creature.ragdoll.DisableCharJointBreakForce();
+        creature.OnDespawnEvent -= OnDespawnEvent;
     }
 
     public void SetColor(Color target, string spellId, float time = 1f)
@@ -62,9 +68,9 @@ public class BrainModuleCrystal : BrainData.Module
 
     public void SetEffects(bool active)
     {
-        if (active && selected != null && selected.boneDataPairs != null && selected.boneDataPairs.Count > 0)
+        if (active && currentBoneMap != null && currentBoneMap.boneDataPairs != null && currentBoneMap.boneDataPairs.Count > 0)
         {
-            foreach (var pair in selected.boneDataPairs)
+            foreach (var pair in currentBoneMap.boneDataPairs)
                 if (pair.Value != null && !string.IsNullOrEmpty(pair.Key))
                 {
                     var part = creature?.ragdoll?.GetPartByName(pair.Key);
@@ -73,6 +79,7 @@ public class BrainModuleCrystal : BrainData.Module
                     instance?.Play();
                     instances.Add(instance);
                 }
+            SetMaxParticles(maxParticles);
         }
         else
             for (var i = instances.Count - 1; i >= 0; i--)
@@ -82,15 +89,18 @@ public class BrainModuleCrystal : BrainData.Module
             }
     }
 
-    public void InvokeCrystallise(bool active)
+    public void SetMaxParticles(int max)
     {
-        if (active) onCrystalliseStart?.Invoke(creature);
-        else onCrystalliseStop?.Invoke(creature);
+        foreach (ParticleSystem particleSystem in instances.GetParticleSystems())
+        {
+            var main = particleSystem.main;
+            main.maxParticles = max;
+        }
     }
 
-    public void Crystallise()
+    public void StartCrystallise()
     {
-        if (crystalliseCoroutine != null || isCrystallised) return;
+        if (crystalliseCoroutine != null || isCrystallised || !allowCrystallisation || (creature.isPlayer && !allowPlayerCrystallisation)) return;
         crystalliseCoroutine = creature.StartCoroutine(CrystalliseRoutine(creature));
         IEnumerator CrystalliseRoutine(Creature creature)
         {
@@ -102,7 +112,10 @@ public class BrainModuleCrystal : BrainData.Module
             creature.locomotion.allowTurn = false;
             creature.currentLocomotion.globalMoveSpeedMultiplier.Add(this, 0);
             creature.mana.chargeSpeedMult.Add(this, 0.1f);
-            if (creature.isPlayer) creature.currentLocomotion.globalMoveSpeedMultiplier.Add(this, 0);
+            
+            if (creature.isPlayer)
+                creature.currentLocomotion.globalMoveSpeedMultiplier.Add(this, 0);
+            
             creature.SetDamageMultiplier(this, 1.5f);
             if (!creature.isPlayer)
             {
@@ -132,7 +145,9 @@ public class BrainModuleCrystal : BrainData.Module
     {
         if (creature)
         { 
-            if (creature.isPlayer) creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(this);
+            if (creature.isPlayer)
+                creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(this);
+            
             creature.locomotion.allowMove = true;
             creature.locomotion.allowTurn = true;
             creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(this);
@@ -153,24 +168,21 @@ public class BrainModuleCrystal : BrainData.Module
         }
     }
     
+    public void InvokeCrystallise(bool active)
+    {
+        if (active) onCrystalliseStart?.Invoke(creature);
+        else onCrystalliseStop?.Invoke(creature);
+    }
+    
+    public delegate void OnCrystalliseStart(Creature creature);
+    public delegate void OnCrystalliseStop(Creature creature);
+
     [Serializable]
     public class BoneEffectPair
     {
-        public List<string> creatureIds = new(new []{"HumanMale, HumanFemale"});
+        public List<string> creatureIds = new();
         public Dictionary<string, EffectData> boneDataPairs = new();
-
-        public Dictionary<string, string> boneEffectPairs = new()
-        {
-            { "LeftArm", "CrystallisationUpperArm" },
-            { "RightArm", "CrystallisationUpperArm" },
-            { "LeftForeArm", "CrystallisationLowerArm" },
-            { "RightForeArm", "CrystallisationLowerArm" },
-            { "LeftUpLeg", "CrystallisationUpperLeg" },
-            { "RightUpLeg", "CrystallisationUpperLeg" },
-            { "LeftLeg", "CrystallisationLowerLeg" },
-            { "RightLeg", "CrystallisationLowerLeg" },
-            { "Spine1", "CrystallisationTorso" }
-        };
+        public Dictionary<string, string> boneEffectPairs = new();
 
         public Dictionary<string, EffectData> Load(Creature creature)
         {

@@ -3,13 +3,106 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using ThunderRoad;
 using UnityEngine;
 using UnityEngine.VFX;
 
 public static class Extensions
 {
+    public static void FillWithDefault<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TValue defaultValue = default)
+    {
+        dictionary.Clear();
+        foreach (TKey value in Enum.GetValues(typeof(TKey))) 
+            dictionary[value] = defaultValue;
+    }
+    
+    public static bool TryGetKey<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TValue value, out TKey key)
+    {
+        foreach (KeyValuePair<TKey, TValue> kvp in dictionary)
+            if (kvp.Value.Equals(value))
+            {
+                key = kvp.Key;
+                return true;
+            }
 
+        key = default;
+        return false;
+    }
+    
+    public static U FindOrAddList<T, U, V>(this Dictionary<T, U> dict, T key) where U : ICollection<V>, new()
+    {
+        if (dict == null)
+            throw new ArgumentNullException(nameof(dict));
+
+        if (!dict.TryGetValue(key, out var list))
+        {
+            list = new U();
+            dict[key] = list;
+        }
+
+        return list;
+    }
+
+    public static void AddToList<T, U, V>(this Dictionary<T, U> dict, T key, V element) where U : ICollection<V>, new()
+    {
+        dict.FindOrAddList<T, U, V>(key).Add(element);
+    }
+
+    public static void RemoveFromList<T, U, V>(this Dictionary<T, U> dict, T key, V element) where U : ICollection<V>, new()
+    {
+        if (dict == null)
+            throw new ArgumentNullException(nameof(dict));
+
+        if (dict.TryGetValue(key, out var list))
+        {
+            list.Remove(element);
+            if (list.Count == 0)
+                dict.Remove(key);
+        }
+    }
+    
+    public static T ClosestToPoint<T>(this IEnumerable<T> behaviours, Vector3 point) where T : MonoBehaviour
+    {
+        float lastDistance = Mathf.Infinity;
+        T closest = null;
+        foreach (var behaviour in behaviours)
+        {
+            float distance = Vector3.Distance(behaviour.transform.position, point);
+            if (closest == null || distance < lastDistance)
+            {
+                lastDistance = distance;
+                closest = behaviour;
+            }
+        }
+        return closest;
+    }
+
+    public static T[] AsDataArray<T>(this IEnumerable<string> data) where T : CatalogData
+    {
+        List<T> result = new List<T>();
+        foreach (string item in data) result.Add(Catalog.GetData<T>(item));
+        return result.ToArray();
+    }
+
+    public static void RunOn<T>(this T obj, Action<T> action) where T : class => action?.Invoke(obj);
+
+    public static T AtOrBelowIndex<T>(this IList<T> collection, int index)
+    {
+        if (index < 0 || collection.Count == 0) throw new IndexOutOfRangeException();
+        if (index >= collection.Count) return collection[collection.Count - 1];
+        return collection[index];
+    }
+    
+    public static bool MostlyAlong(this Vector3 vec, Vector3 axis, float tolerance = 0.8f) => Mathf.Abs(Vector3.Dot(vec, axis)) >= tolerance;
+    
+    public static void StopAndStartCoroutine(this MonoBehaviour monoBehaviour, IEnumerator coroutine, ref Coroutine original)
+    {
+        if (monoBehaviour == null) return;
+        if (original != null) monoBehaviour.StopCoroutine(original);
+        original = monoBehaviour.StartCoroutine(coroutine);
+    }
+    
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T> source) where T : class => source.Where(item => item != null)!;
 
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : struct => source.Where(item => item.HasValue).Select(item => item.Value);
@@ -78,35 +171,17 @@ public static class Extensions
         return null;
     }
 
-    private static bool IsInColliderInternal(this Vector3 position, float allowance)
-    {
-        return Physics.CheckSphere(position, allowance);
-    }
+    private static bool IsInColliderInternal(this Vector3 position, float allowance) => Physics.CheckSphere(position, allowance);
 
-    private static T[] GetComponentsInternal<T>(GameObject gameObject) where T : Component
-    {
-        return gameObject.GetComponents<T>();
-    }
+    private static T[] GetComponentsInternal<T>(GameObject gameObject) where T : Component  => gameObject.GetComponents<T>();
 
-    private static T GetComponentInParentInternal<T>(GameObject gameObject) where T : Component
-    {
-        return gameObject.GetComponentInParent<T>();
-    }
+    private static T GetComponentInParentInternal<T>(GameObject gameObject) where T : Component => gameObject.GetComponentInParent<T>();
+    
+    private static T[] GetComponentsInParentInternal<T>(GameObject gameObject) where T : Component => gameObject.GetComponentsInParent<T>();
 
-    private static T[] GetComponentsInParentInternal<T>(GameObject gameObject) where T : Component
-    {
-        return gameObject.GetComponentsInParent<T>();
-    }
+    private static T GetComponentInChildrenInternal<T>(GameObject gameObject) where T : Component  => gameObject.GetComponentInChildren<T>();
 
-    private static T GetComponentInChildrenInternal<T>(GameObject gameObject) where T : Component
-    {
-        return gameObject.GetComponentInChildren<T>();
-    }
-
-    private static T[] GetComponentsInChildrenInternal<T>(GameObject gameObject) where T : Component
-    {
-        return gameObject.GetComponentsInChildren<T>();
-    }
+    private static T[] GetComponentsInChildrenInternal<T>(GameObject gameObject) where T : Component => gameObject.GetComponentsInChildren<T>();
 
     private static List<T> GetComponentsInImmediateChildrenInternal<T>(Transform origin) where T : Component
     {
@@ -139,10 +214,7 @@ public static class Extensions
         return components;
     }
 
-    private static T GetComponentInImmediateParentInternal<T>(Transform origin) where T : Component
-    {
-        return origin.parent != null ? origin.parent.GetComponent<T>() : null;
-    }
+    private static T GetComponentInImmediateParentInternal<T>(Transform origin) where T : Component  => origin.parent != null ? origin.parent.GetComponent<T>() : null;
 
     private static Transform GetChildByNameRecursiveInternal(Transform parent, string nameToCheck)
     {
@@ -289,24 +361,6 @@ public static class Extensions
 
     public static List<Transform> GetMatchingChildren(this Component comp, string keyword) => GetMatchingChildrenInternal(comp.transform, keyword);
 
-    public static void SmoothLookAt(this Transform transform, Transform target, float duration) => GameManager.local.StartCoroutine(SmoothLookRoutine(transform, target, duration));
-
-
-    private static IEnumerator SmoothLookRoutine(Transform transform, Transform target, float duration)
-    {
-        var timeElapsed = 0f;
-        var initialRotation = transform.rotation;
-        var targetRotation = Quaternion.LookRotation(target.position - transform.position);
-        while (timeElapsed < duration)
-        {
-            transform.rotation = Quaternion.Slerp(initialRotation, targetRotation, timeElapsed / duration);
-            timeElapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.rotation = targetRotation;
-    }
-
     public static void Despawn(this ThunderEntity entity, float time) => entity.RunAfter(() => { entity.Despawn(); }, time);
 
     public static RagdollPart GetClosestPart(this Ragdoll ragdoll, Vector3 position, float maxDistance, out RagdollPart ragdollPart)
@@ -414,9 +468,13 @@ public static class Extensions
         return result;
     }
 
-    public static List<Damager> Damagers(this Item item)
+    public static List<Damager> Damagers(this Item item) => item.GetComponentsInChildren<Damager>().ToList();
+    
+    public static List<Damager> BelongingToGroup(this List<Damager> damagers, ColliderGroup colliderGroup)
     {
-        return item.GetComponentsInChildren<Damager>().ToList();
+        var result = new List<Damager>();
+        foreach (var damager in damagers) if (damager.colliderGroup == colliderGroup) result.Add(damager);
+        return result;
     }
 
     public static List<Damager> OfType(this List<Damager> damagers, DamageType damageType)
@@ -432,6 +490,9 @@ public static class Extensions
                 break;
             case DamageType.Slash:
                 result.AddRange(damagers.Where(d => d.penetrationDepth > 0 && d.penetrationLength > 0));
+                break;
+            case DamageType.Fire:
+                result.AddRange(damagers.Where(d => d.data.id == "Fireball"));
                 break;
         }
 
@@ -589,5 +650,36 @@ public static class Extensions
             minMaxGradient.color = color;
             colorOverLifetime.color = color;
         }
+    }
+
+    public static void SetScalingMode(this EffectInstance effectInstance, ParticleSystemScalingMode scalingMode)
+    {
+        foreach (var particleSystem in effectInstance.GetParticleSystems())
+        {
+            var main = particleSystem.main;
+            main.scalingMode = scalingMode;
+        }
+    }
+    
+    public static void SetScalingMode(this EffectParticle effectParticle, ParticleSystemScalingMode scalingMode)
+    {
+        foreach (var particleSystem in effectParticle.rootParticleSystem.GetComponentsInChildren<ParticleSystem>())
+        {
+            var main = particleSystem.main;
+            main.scalingMode = scalingMode;
+        }
+    }
+    
+    public static void SetVolume(this EffectInstance effectInstance, float value)
+    {
+        foreach (EffectAudio effectAudio in effectInstance.effects.OfType<EffectAudio>())
+            effectAudio.audioSource.volume = value;
+    }
+
+    public static void SetDisallowedSimulationSpace(this EffectInstance effectInstance, ParticleSystemSimulationSpace simulationSpace)
+    {
+        foreach (ParticleSystem particleSystem in effectInstance.GetParticleSystems())
+            if (particleSystem.main.simulationSpace == simulationSpace)
+                particleSystem.Stop();
     }
 }

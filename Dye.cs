@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
+using ThunderRoad.DebugViz;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Crystallic;
 
@@ -29,16 +31,7 @@ public class Dye : ThunderScript
         dyeData = Catalog.GetDataList<DyeData>();
         Debug.Log("[Crystallic] Loaded Dye Data:\n - " + string.Join("\n - ", dyeData.Select(d => d.id)));
     }
-
-    public static bool TryGetDye(string id, out DyeData dyeData) => (dyeData = FindDyeDataById(id)) != null;
-
-    public static DyeData GetDye(string id)
-    {
-        var dyeData = FindDyeDataById(id);
-        if (dyeData == null) Debug.LogError($"[Crystallic] Dye with ID {id} not found.");
-        return dyeData;
-    }
-
+    
     public static Color GetEvaluatedColor(string originSpellId, string hitSpellId)
     {
         var color = new Color(1, 1, 1, 1);

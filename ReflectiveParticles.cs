@@ -60,7 +60,17 @@ public static class ReflectiveParticles
 
         injectedMap[particleSystem] = (entry.original, entry.keys);
     }
-    
+
+    public static void RemoveAll(EffectInstance effectInstance)
+    {
+        var particleSystems = effectInstance.GetParticleSystems();
+        for (int i = 0; i < particleSystems.Length; i++)
+            foreach (KeyValuePair<ParticleSystem, (Gradient original, List<InjectedKey> keys)> kvp in injectedMap)
+            foreach (var key in kvp.Value.keys)
+                if (kvp.Key == particleSystems[i])
+                    Remove(particleSystems[i], key.id);
+    }
+
     public static void Remove(EffectInstance effectInstance, string id)
     {
         var particleSystems = effectInstance.GetParticleSystems();

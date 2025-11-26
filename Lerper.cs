@@ -1,4 +1,5 @@
 using System.Collections;
+using System.ComponentModel;
 using ThunderRoad;
 using UnityEngine;
 
@@ -20,12 +21,19 @@ public class Lerper
 
     public IEnumerator SetColorRoutine(ParticleSystem[] particles, Color target, string spellId, float tts = 1f)
     {
+        yield return Yielders.EndOfFrame;
         var timeElapsed = 0f;
-        var originalColors = new Color[particles.Length];
         for (var i = 0; i < particles.Length; i++)
         {
             var lt = particles[i].colorOverLifetime;
             lt.enabled = true;
+        }
+        
+        yield return Yielders.EndOfFrame;
+        
+        var originalColors = new Color[particles.Length];
+        for (var i = 0; i < particles.Length; i++)
+        {
             var colorOverLifetime = particles[i].colorOverLifetime;
             originalColors[i] = colorOverLifetime.color.color;
         }

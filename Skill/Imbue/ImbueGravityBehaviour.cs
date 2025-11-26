@@ -7,23 +7,23 @@ using ThunderRoad;
 using ThunderRoad.Skill.Spell;
 using UnityEngine;
 
-namespace Crystallic.Skill;
+namespace Crystallic.Skill.Imbue;
 
 public class ImbueGravityBehaviour : ImbueBehaviour
 {
-    [ModOption("Joint Spring", "The spring applied to the joint connecting two physicBodies, this is the value that decides how tightly two limbs are bound, from loosely floaty to tight."), ModOptionCategory("Lithohammer", 23), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
+    [ModOption("Lithohammer Spring", "The spring applied to the tether connecting two physicBodies, this is the value that decides how tightly two limbs are bound.", order = 0), ModOptionCategory("Lithohammer", 6), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
     public static float spring = 550f;
 
-    [ModOption("Joint Damper", "The damping applied to the joint connecting two physicBodies, this acts as a smoother, damping out movement to act floaty."), ModOptionCategory("Lithohammer", 23), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
+    [ModOption("Lithohammer Damper", "The damping applied to the tether connecting two physicBodies, this acts as a smoother, damping out movement to act floaty.", order = 1), ModOptionCategory("Lithohammer", 6), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
     public static float damper = 30f;
 
-    [ModOption("Min Joint Distance", "The min distance two physicBodies can be from one another."), ModOptionCategory("Lithohammer", 23), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
+    [ModOption("Min Lithohammer Distance", "The min distance two physicBodies can be from one another.", order = 2), ModOptionCategory("Lithohammer", 6), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float minDistance = 1f;
 
-    [ModOption("Max Joint Distance", "The max distance two physicBodies can be from one another."), ModOptionCategory("Lithohammer", 23), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
+    [ModOption("Max Lithohammer Distance", "The max distance two physicBodies can be from one another.", order = 3), ModOptionCategory("Lithohammer", 6), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float maxDistance = 15f;
     
-    [ModOption("Joint Lifetime", "The lifetime of each joint."), ModOptionCategory("Lithohammer", 23), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
+    [ModOption("Lithohammer Lifetime", "The lifetime of each tether."), ModOptionCategory("Lithohammer", 5), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float lifetime = 3f;
 
     public StatusData statusData;
@@ -34,7 +34,7 @@ public class ImbueGravityBehaviour : ImbueBehaviour
     public string tetherEffectId = "GravityTether";
     public Dictionary<Creature, JointEffect> jointedBodies = new();
 
-    public override void Load(SkillCrystalImbueHandler handler, Imbue imbue)
+    public override void Load(CrystalImbueSkillData handler, ThunderRoad.Imbue imbue)
     {
         base.Load(handler, imbue);
         EventManager.onCreatureDespawn += OnCreatureDespawn;
@@ -49,14 +49,13 @@ public class ImbueGravityBehaviour : ImbueBehaviour
         if (jointedBodies.ContainsKey(creature))
         {
             Destroy(jointedBodies[creature].configurableJoint);
-            jointedBodies[creature].effectInstance.End();
+            foreach (EffectInstance effectInstance in jointedBodies[creature].effectInstances) effectInstance.End();
             jointedBodies.Remove(creature);
         }
     }
 
     public override void Hit(CollisionInstance collisionInstance, SpellCastCharge spellCastCharge)
     {
-        base.Hit(collisionInstance, spellCastCharge);
         var item = collisionInstance?.sourceColliderGroup?.collisionHandler?.item;
         var part = collisionInstance?.targetColliderGroup?.collisionHandler?.ragdollPart;
         if (part && item && !part.ragdoll.creature.isPlayer && collisionInstance.impactVelocity.magnitude > 18) TryCreateJoint(collisionInstance, item, part);
@@ -95,11 +94,17 @@ public class ImbueGravityBehaviour : ImbueBehaviour
                 yield return Yielders.EndOfFrame;
             }
         }
-        snapEffectData.Spawn(jointEffect.configurableJoint.transform).Play();
-        jointEffect.effectInstance.End(); 
-        spellCastGravity.readyEffectData.Spawn(jointEffect.configurableJoint.transform).Play();
-        jointEffect.configurableJoint.breakForce = 0f;
-        Destroy(jointEffect.configurableJoint);
+
+        if (jointEffect.configurableJoint != null)
+        {
+            snapEffectData.Spawn(jointEffect.configurableJoint.transform).Play();
+            ragdollPart.ragdoll.creature.Remove(statusData, this);
+            spellCastGravity.readyEffectData.Spawn(jointEffect.configurableJoint.transform).Play();
+            jointEffect.configurableJoint.breakForce = 0f;
+            Destroy(jointEffect.configurableJoint);
+        }
+        
+        foreach (EffectInstance effectInstance in jointEffect.effectInstances) effectInstance.End(); 
         jointedBodies.Remove(ragdollPart.ragdoll.creature);
     }
 
@@ -110,40 +115,29 @@ public class ImbueGravityBehaviour : ImbueBehaviour
         effectInstance.SetSource(collisionInstance.sourceCollider.transform);
         effectInstance.SetTarget(target.transform);
         effectInstance.Play();
-        var joint = Utils.CreateConfigurableJoint(source.physicBody.rigidBody, target?.physicBody.rigidBody, spring, damper, minDistance, maxDistance, 1);
-        jointedBodies.Add(target.ragdoll.creature, new JointEffect(effectInstance, joint));
-        target.ragdoll.creature.Remove(statusData, this);
+        var joint = Utils.CreateConfigurableJoint(source.physicBody.rigidBody, target?.physicBody.rigidBody, spring, damper, minDistance, maxDistance, 0.35f);
+        jointedBodies.Add(target.ragdoll.creature, new JointEffect(joint));
+        jointedBodies[target.ragdoll.creature].effectInstances.Add(effectInstance);
+        target.ragdoll.creature.Inflict(statusData, this, parameter: new FloatingParams(0f, 0.1f, 1f, true));
         StartCoroutine(JointExpirationRoutine(source, target));
     }
 
-    public override void Unload(Imbue imbue)
+    public override void Unload(ThunderRoad.Imbue imbue)
     {
         base.Unload(imbue);
         foreach (var kvp in jointedBodies.ToList())
         {
             var creature = kvp.Key;
             var jointEffect = kvp.Value;
-            if (jointEffect != null && jointEffect.effectInstance != null) jointEffect.effectInstance.End();
+            if (jointEffect != null && !jointEffect.effectInstances.IsNullOrEmpty()) foreach (EffectInstance effectInstance in jointEffect.effectInstances) effectInstance.End();
             if (jointEffect?.configurableJoint != null)
             {
+                creature.Remove(statusData, this);
                 jointEffect.configurableJoint.breakForce = 0f;
                 Destroy(jointEffect.configurableJoint);
             }
 
             jointedBodies.Remove(creature);
         }
-    }
-}
-
-[Serializable]
-public class JointEffect
-{
-    public EffectInstance effectInstance;
-    public ConfigurableJoint configurableJoint;
-
-    public JointEffect(EffectInstance effectInstance, ConfigurableJoint configurableJoint)
-    {
-        this.effectInstance = effectInstance;
-        this.configurableJoint = configurableJoint;
     }
 }
