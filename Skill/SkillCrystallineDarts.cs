@@ -8,26 +8,27 @@ namespace Crystallic.Skill;
 
 public class SkillCrystallineDarts : SkillData
 {
-    public Dictionary<ArcPointsManager.PointData, Handle> handles = new();
-    public SkillCrystalReservoir skillCrystalReservoir;
-    public SpellCastCrystallic spellCastCrystallic;
-    
     [ModOption("Targeting Angle", "Controls the angle of aim assist when you throw a shard, if an enemy is in this radius the shard's velocity move towards it slightly."), ModOptionFloatValues(0f, 360f, 1f), ModOptionSlider, ModOptionCategory("Crystalline Darts", 11)]
     public static float targetingAngle = 20f;
     
     [ModOption("Targeting Max Distance", "Controls the max distance of aim assist."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Crystalline Darts", 11)]
     public static float targetingDistance = 5f;
+    
+    public Dictionary<ArcPointsManager.PointData, Handle> handles = new();
+    public SkillCrystalReservoir skillCrystalReservoir;
+    public SpellCastCrystallic spellCastCrystallic;
 
     public override void OnLateSkillsLoaded(SkillData skillData, Creature creature)
     {
         base.OnLateSkillsLoaded(skillData, creature);
+        
         if (creature.TryGetSkill("CrystalReservoir", out skillCrystalReservoir))
         {
             skillCrystalReservoir.onShardAdd += OnShardAdd;
             skillCrystalReservoir.onShardRemove += OnShardRemove;
         }
 
-        creature.mana.TryGetSpell("Crystallic", out spellCastCrystallic);
+        spellCastCrystallic = Catalog.GetData<SpellCastCrystallic>("Crystallic");
     }
 
     public override void OnSkillUnloaded(SkillData skillData, Creature creature)
@@ -96,9 +97,6 @@ public class SkillCrystallineDarts : SkillData
         GameObject parent = effect.effects[0].transform.parent.gameObject;
         effect.SetParent(handle.transform, true);
         Object.Destroy(parent);
-        bool wasAlreadyCrystallic = ragdollHand.caster.spellInstance?.id == "Crystallic";
-        if (!wasAlreadyCrystallic) ragdollHand.caster.LoadSpell(spellCastCrystallic);
-        spellCastCrystallic = ragdollHand.caster.spellInstance as SpellCastCrystallic;
         
         ragdollHand.HapticTick();
         Vector3 velocity = Player.local.transform.rotation * PlayerControl.GetHand(ragdollHand.side).GetHandVelocity();
@@ -108,7 +106,7 @@ public class SkillCrystallineDarts : SkillData
         if (thunderEntity != null) velocity = (targetPoint.position + (thunderEntity is Creature creature ? creature.locomotion.moveDirection : Vector3.zero) * 0.5f - position).normalized * velocity.magnitude;
         
         if (velocity.magnitude > SpellCaster.throwMinHandVelocity)
-            spellCastCrystallic.FireShard(spellCastCrystallic.shardEffectData, position, velocity * 2.5f, spellCastCrystallic.ShardLifetime, shard =>
+            spellCastCrystallic.FireShard(spellCastCrystallic.shardEffectData, position, velocity * 2.5f, spellCastCrystallic.ShardLifetime, 1.0f , shard =>
             {
                 ragdollHand.HapticTick();
                 skillCrystalReservoir.wristHolders[ragdollHand.otherHand.side].RemovePoint(point);
@@ -116,8 +114,7 @@ public class SkillCrystallineDarts : SkillData
                 EffectInstance pulse = spellCastCrystallic.pulseEffectData.Spawn(position, Quaternion.LookRotation(velocity));
                 pulse.Play();
                 pulse.SetSize(0.5f);
-            });
-        if (!wasAlreadyCrystallic) ragdollHand.caster.UnloadSpell();
+            }, ignoredRagdoll: ragdollHand.ragdoll);
     }
 
     private void OnShardRemove(ArcPointsManager pointsManager, ArcPointsManager.PointData point)

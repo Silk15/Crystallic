@@ -10,10 +10,8 @@ public class ImbueLightningBehaviour : ImbueBehaviour
     public float boltRange = 3f;
     public float boltPeriod = 0.5f;
     public float boltPeriodVariance = 0.25f;
-    
     public ColliderGroup colliderGroup;
     public Item item;
-
     private SpellCastLightning spellCastLightning;
     private float nextBoltTime;
 
@@ -26,7 +24,6 @@ public class ImbueLightningBehaviour : ImbueBehaviour
         nextBoltTime = Time.time + Random.Range(0, randomStartDelay);
         item = imbue.colliderGroup.collisionHandler.item;
         item.OnThrowEvent += OnThrow;
-        item.OnFlyStartEvent += OnFlyStart;
         colliderGroup = imbue.colliderGroup;
     }
 
@@ -35,11 +32,8 @@ public class ImbueLightningBehaviour : ImbueBehaviour
     public override void Unload(ThunderRoad.Imbue imbue)
     {
         base.Unload(imbue);
-        item.OnFlyStartEvent -= OnFlyStart;
         item.OnThrowEvent -= OnThrow;
     }
-
-    private void OnFlyStart(Item item) => nextBoltTime = Time.time + Random.Range(0, randomStartDelay);
 
     protected override void ManagedUpdate()
     {
@@ -50,7 +44,9 @@ public class ImbueLightningBehaviour : ImbueBehaviour
         nextBoltTime = Time.time + Random.Range(0, boltPeriod + boltPeriodVariance);
         SpellCastLightning.BoltHit boltHit = GetHit(transform.position, boltRange);
         
-        if (boltHit.collider == null) return;
+        if (boltHit.collider == null) 
+            return;
+        
         spellCastLightning.Hit(boltHit.collider.GetComponentInParent<ColliderGroup>(), boltHit.closestPoint, boltHit.normal, boltHit.direction, 1f, false, null, 1f, null, boltHit.collider);
         spellCastLightning.PlayBolt(this.colliderGroup.ClosestPoint(boltHit.closestPoint), boltHit.closestPoint);
     }

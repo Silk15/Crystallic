@@ -5,6 +5,7 @@ using ThunderRoad;
 using ThunderRoad.DebugViz;
 using ThunderRoad.Skill.Spell;
 using UnityEngine;
+using QualityLevel = ThunderRoad.QualityLevel;
 using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.Spell;
@@ -12,19 +13,16 @@ namespace Crystallic.Skill.Spell;
 public class SpellCastCrystallic : SpellCastCharge
 {
     [ModOption("Allow Imbue Crystallisation", "Controls whether the crystallic imbue can crystallise people or not.", order = 0), ModOptionCategory("Spell", 1)]
-    public static  bool allowImbueCrystallisation = true;
+    public static bool allowImbueCrystallisation = true;
     
     [ModOption("Allow Shard Crystallisation", "Controls whether the crystallic shards can crystallise people or not.", order = 1), ModOptionCategory("Spell", 1)]
-    public static  bool allowShardCrystallisation = true;
+    public static bool allowShardCrystallisation = true;
     
     [ModOption("Allow Staff Crystallisation", "Controls whether the crystallic staff slam can crystallise people or not.", order = 2), ModOptionCategory("Spell", 1)]
-    public static  bool allowStaffCrystallisation = true;
+    public static bool allowStaffCrystallisation = true;
     
     [ModOption("Default Shard Count", "Controls how many shards spawn (BY DEFAULT) when the spell is thrown, this value is modified by skills as well.", order = 3), ModOptionSlider, ModOptionCategory("Spell", 1), ModOptionIntValues(1, 12, 1)]
     public static int defaultShardCount = 3;
-    
-    [ModOption("Default Shard Lifetime", "Controls how long the shards stay alive for (BY DEFAULT). This value is modified by skills as well.", order = 4), ModOptionSlider, ModOptionCategory("Spell", 1), ModOptionFloatValues(0.1f, 10f, 0.05f)]
-    public static float defaultShardLifetime = 0.75f;
     
     public AnimationCurve pulseCurve = new(new Keyframe(0.0f, 10f), new Keyframe(0.05f, 25f), new Keyframe(0.1f, 10f));
     public List<Shard> lastShards = new();
@@ -36,14 +34,12 @@ public class SpellCastCrystallic : SpellCastCharge
     public EffectData staffSlamEffectData;
     public ItemData shardItemData;
     public Vector3 lastShardshotVelocity;
-
     public string staffSlamEffectId;
     public string imbueCollisionEffectId;
     public string shardDamagerId;
     public string shardItemId;
     public string shardEffectId;
     public string pulseEffectId;
-
     public float slamUpwardsForceMult = 0.35f;
     public float staffSlamMinForce = 10f;
     public float staffSlamMaxForce = 60f;
@@ -53,8 +49,11 @@ public class SpellCastCrystallic : SpellCastCharge
     public float lastShardshotTime = 0f;
     private float cooldown = 0.1f;
     private float lastTime = 1;
-    
     private int unlockedTierBlockers;
+
+    public event SprayDelegate onSprayStart;
+    public event SprayDelegate onSprayLoop;
+    public event SprayDelegate onSprayEnd;
     
     public event ShardHitEvent onShardHit;
     public event ShardEvent onShardSpawn;
@@ -80,7 +79,7 @@ public class SpellCastCrystallic : SpellCastCharge
     {
         get
         {
-            float shardLifetime = defaultShardLifetime;
+            float shardLifetime = 0.75f;
             foreach (int value in AdditionalLifetime.Values) shardLifetime += value;
             return shardLifetime;
         }
@@ -116,10 +115,56 @@ public class SpellCastCrystallic : SpellCastCharge
     public override void Load(SpellCaster spellCaster)
     {
         base.Load(spellCaster);
-        unlockedTierBlockers = spellCaster.mana.creature.CountSkillsOfTree(primarySkillTreeId);
         if (!spellCaster.ragdollHand.ragdoll.creature.isPlayer) return;
         spellCaster.ragdollHand.playerHand.controlHand.OnButtonPressEvent += OnButtonPressWhileCasting;
         spellCaster.mana.OnSpellUnloadEvent += OnSpellUnload;
+    }
+
+    public override void OnLateSkillsLoaded(SkillData skillData, Creature creature)
+    {
+        base.OnLateSkillsLoaded(skillData, creature);
+        unlockedTierBlockers = Catalog.GetDataList<SkillData>().Count(s => creature.HasSkill(s) && s.primarySkillTreeId == primarySkillTreeId && s.secondarySkillTreeId.IsNullOrEmptyOrWhitespace() && s.isTierBlocker) - 1;
+    }
+
+    public override void Load(ThunderRoad.Imbue imbue)
+    {
+        base.Load(imbue);
+        
+        if (!Dye.rainbowModeWasActivatedThisSession) 
+            return;
+        
+        foreach (Effect effect in imbueEffect.effects)
+        {
+            if (effect is EffectShader effectShader)
+                foreach (EffectModule effectModule in imbueEffect.effectData.modules)
+                    if (effectModule is EffectModuleShader effectModuleShader)
+                        switch (Common.GetQualityLevel())
+                        {
+                            case QualityLevel.Windows:
+                                effectShader.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleShader.mainColorStart, effectModuleShader.mainColorEnd));
+                                break;
+                            
+                            case QualityLevel.Android:
+                                effectShader.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleShader.mainNoHdrColorStart, effectModuleShader.mainNoHdrColorEnd));
+                                break;
+                        }
+
+            if (effect is EffectParticle effectParticle)
+                foreach (EffectModule effectModule in imbueEffect.effectData.modules)
+                    if (effectModule is EffectModuleParticle effectModuleParticle)
+                    {
+                        switch (Common.GetQualityLevel())
+                        {
+                            case QualityLevel.Windows:
+                                effectParticle.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleParticle.mainColorStart, effectModuleParticle.mainColorEnd));
+                                break;
+                            
+                            case QualityLevel.Android:
+                                effectParticle.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleParticle.mainNoHdrColorStart, effectModuleParticle.mainNoHdrColorEnd));
+                                break;
+                        }
+                    }
+        }
     }
 
     private void OnSpellUnload(SpellData spellInstance, SpellCaster caster)
@@ -156,12 +201,17 @@ public class SpellCastCrystallic : SpellCastCharge
         base.Throw(velocity);
         int total = 0;
         lastShardshotVelocity = velocity;
-        spellCaster.ragdollHand.PlayHapticClipOver(pulseCurve, 1);
-        spellCaster.ragdollHand.HapticTick(1);
+        
+        if (Common.IsAndroid) 
+            spellCaster.ragdollHand.HapticTick(10);
+        
+        else 
+            spellCaster.ragdollHand.PlayHapticClipOver(pulseCurve, 1);
+        
         Vector3 origin = spellCaster.magicSource.position + velocity.normalized * 0.1f;
         var effectInstance = pulseEffectData.Spawn(origin, Quaternion.LookRotation(velocity));
         effectInstance.onEffectFinished += OnEffectFinished;
-        onShardshotStart?.Invoke(this, effectInstance, EventTime.OnStart, velocity);
+        InvokeShardshotStart(effectInstance, EventTime.OnStart, velocity);
         lastShardshotTime = Time.time;
         effectInstance.Play();
 
@@ -180,13 +230,13 @@ public class SpellCastCrystallic : SpellCastCharge
         shardData.Sort((a, b) => Vector3.Dot(a.pos - origin, spellCaster.magicSource.right).CompareTo(Vector3.Dot(b.pos - origin, spellCaster.magicSource.right)));
         foreach (var (position, direction) in shardData)
         {
-            FireShard(shardEffectData, position, direction * (velocity.magnitude * 2.5f), ShardLifetime, shard =>
+            FireShard(shardEffectData, position, direction * (velocity.magnitude * 2.5f), ShardLifetime, 1.0f, shard =>
             {
                 total++;
                 shards.Add(shard);
                 if (total == ShardCount)
                 {
-                    onShardshotStart?.Invoke(this, effectInstance, EventTime.OnEnd, velocity, shards);
+                    InvokeShardshotStart(effectInstance, EventTime.OnEnd, velocity, shards);
                     lastShards = shards;
                 }
             });
@@ -195,14 +245,26 @@ public class SpellCastCrystallic : SpellCastCharge
         void OnEffectFinished(EffectInstance effectInstance)
         {
             effectInstance.onEffectFinished -= OnEffectFinished;
-            onShardshotEnd?.Invoke(this, effectInstance);
+            InvokeShardshotEnd(effectInstance);
         }
     }
 
-    public void FireShard(EffectData shardEffect, Vector3 shootPos, Vector3 shootVelocity, float lifetime, Action<Shard> onSpawned = null, bool invoke = true)
+    public void FireShard(EffectData shardEffect, Vector3 shootPos, Vector3 shootVelocity, float lifetime, float damageMultiplier = 1f, Action<Shard> onSpawned = null, int colliderLayer = default, Ragdoll ignoredRagdoll = null, Collider[] ignoredColliders = null)
     {
         shardItemData.SpawnAsync(shard =>
         {
+            shard.ResetColliderCollision();
+            
+            if (colliderLayer != default) 
+                shard.SetColliderLayer(colliderLayer);
+            
+            if (ignoredRagdoll != null)
+                shard.IgnoreRagdollCollision(ignoredRagdoll);
+            
+            if (ignoredColliders != null)
+                foreach (var ignoredCollider in ignoredColliders)
+                    shard.IgnoreColliderCollision(ignoredCollider);
+            
             shard.SetColliders(false);
             shard.RunAfter(() => shard.SetColliders(true), 0.5f);
             shard.transform.position = shootPos;
@@ -210,7 +272,7 @@ public class SpellCastCrystallic : SpellCastCharge
             RagdollHand ragdollHand = imbue?.colliderGroup.collisionHandler.item.lastHandler ?? spellCaster?.ragdollHand;
             if (ragdollHand?.ragdoll) shard.IgnoreRagdollCollision(ragdollHand.ragdoll);
             FloatHandler floatHandler = new FloatHandler();
-            floatHandler.Add(this, 1);
+            floatHandler.Add(this, damageMultiplier);
             foreach (CollisionHandler collisionHandler in shard.collisionHandlers)
             foreach (Damager damager in collisionHandler.damagers)
             {
@@ -229,17 +291,12 @@ public class SpellCastCrystallic : SpellCastCharge
                 component.allowDeflect = false;
                 component.imbueSpellCastCharge = this;
                 component.Load(this);
-                component.invokeCollisionEvents = invoke;
                 component.OnProjectileCollisionEvent -= OnProjectileCollisionEvent;
                 component.OnProjectileCollisionEvent += OnProjectileCollisionEvent;
                 component.Fire(shootVelocity, shardEffect, imbue?.colliderGroup.collisionHandler.item, imbue?.colliderGroup.collisionHandler.ragdollPart?.ragdoll ?? spellCaster?.ragdollHand?.ragdoll, homing: false);
                 onSpawned?.Invoke(component);
                 component.item.physicBody.angularVelocity = Vector3.zero;
-                if (invoke) onShardSpawn?.Invoke(this, component);
-                component.DelayedDespawn(() =>
-                {
-                    if (invoke) onShardDespawn?.Invoke(this, component);
-                }, lifetime);
+                component.DelayedDespawn(null, lifetime);
             }
         });
     }
@@ -340,15 +397,9 @@ public class SpellCastCrystallic : SpellCastCharge
             shard.Lifetime = ShardLifetime;
             shard.ElapsedLifetime = 0f;
         }
-        if (shard.invokeCollisionEvents)
-        {
-            shard.InvokeCollision(collisionInstance);
-            onShardHit?.Invoke(this, shard, collisionInstance);
-            if (shard.despawnOnHit) onShardDespawn?.Invoke(this, shard);
-        }
         
         projectile.OnProjectileCollisionEvent -= OnProjectileCollisionEvent;
-        if (collisionInstance?.targetColliderGroup?.collisionHandler?.Entity is Creature creature && creature != spellCaster.mana.creature && creature.factionId != spellCaster.mana.creature.factionId && collisionInstance.targetMaterial != null && allowShardCrystallisation)
+        if (collisionInstance?.targetColliderGroup?.collisionHandler?.Entity is Creature creature && (shard.crystalliseFunc == null || shard.crystalliseFunc.Invoke(creature)) && (spellCaster == null || spellCaster.mana == null || creature != spellCaster.mana.creature && creature.factionId != spellCaster.mana.creature.factionId) && collisionInstance.targetMaterial != null && allowShardCrystallisation)
             creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
     }
 
@@ -365,15 +416,57 @@ public class SpellCastCrystallic : SpellCastCharge
         return base.OnImbueCollisionStart(collisionInstance);
     }
 
+    public override void UpdateImbue(float speedRatio)
+    {
+        base.UpdateImbue(speedRatio);
+        if (imbue && Dye.rainbowMode)
+            imbueEffect.SetMainGradient(Utils.MakeShiftingGradient());
+    }
+
+    public override void OnSprayStart()
+    {
+        base.OnSprayStart();
+        InvokeSpray(Effect.Step.Start);
+    }
+
+    public override void OnSprayLoop()
+    {
+        base.OnSprayLoop();
+        InvokeSpray(Effect.Step.Loop);
+    }
+
+    public override void OnSprayStop()
+    {
+        base.OnSprayStop();
+        InvokeSpray(Effect.Step.End);
+    }
+
     public void InvokeShardHit(Shard shard, CollisionInstance collisionInstance) => onShardHit?.Invoke(this, shard, collisionInstance);
     public void InvokeShardSpawn(Shard shard) => onShardSpawn?.Invoke(this, shard);
     public void InvokeShardDespawn(Shard shard) => onShardDespawn?.Invoke(this, shard);
-    public void InvokeShardshotStart(EffectInstance effectInstance, EventTime eventTime, Vector3 velocity, List<Shard> shards) => onShardshotStart?.Invoke(this, effectInstance, eventTime, velocity, shards);
+    public void InvokeShardshotStart(EffectInstance effectInstance, EventTime eventTime, Vector3 velocity, List<Shard> shards = null) => onShardshotStart?.Invoke(this, effectInstance, eventTime, velocity, shards);
     public void InvokeShardshotEnd(EffectInstance effectInstance) => onShardshotEnd?.Invoke(this, effectInstance);
+
+    public void InvokeSpray(Effect.Step step)
+    {
+        switch (step)
+        {
+            case Effect.Step.Start:
+                onSprayStart?.Invoke(this);
+                break;
+            case Effect.Step.Loop:
+                onSprayLoop?.Invoke(this);
+                break;
+            case Effect.Step.End:
+                onSprayEnd?.Invoke(this);
+                break;
+        }
+    }
     
     public delegate void ShardHitEvent(SpellCastCrystallic spellCastCrystallic, Shard shard, CollisionInstance collisionInstance);
     public delegate void ShardEvent(SpellCastCrystallic spellCastCrystallic, Shard shard);
     public delegate void ShardshotStartEvent(SpellCastCrystallic spellCastCrystallic, EffectInstance effectInstance, EventTime eventTime, Vector3 velocity, List<Shard> shards = null);
     public delegate void ShardshotEndEvent(SpellCastCrystallic spellCastCrystallic, EffectInstance effectInstance);
     public delegate void ButtonDelegate(SpellCastCrystallic spellCastCrystallic, PlayerControl.Hand.Button button, bool pressed, bool casting);
+    public delegate void SprayDelegate(SpellCastCrystallic spellCastCrystallic);
 }

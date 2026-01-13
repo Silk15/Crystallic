@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
 using ThunderRoad.Skill;
+using ThunderRoad.Skill.Spell;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Crystallic.Skill.Spell;
 
@@ -11,10 +14,10 @@ public class SkillCrystalReservoir : SpellSkillData
     public Dictionary<ArcPointsManager.PointData, EffectInstance> pointEffects = new();
     public Dictionary<Side, ArcPointsManager> wristHolders = new();
     public SpellCastCrystallic spellCastCrystallic;
-    
+
     [ModOption("Max Reservoir Shards", "Controls the default maximum shards per wrist."), ModOptionIntValues(1, 15, 1), ModOptionSlider, ModOptionCategory("Crystal Reservoir", 9)]
     public static int maxShards = 5;
-    
+
     public event ShardDelegate onShardAdd;
     public event ShardDelegate onShardRemove;
 
@@ -42,22 +45,26 @@ public class SkillCrystalReservoir : SpellSkillData
     public override void OnSpellLoad(SpellData spell, SpellCaster caster = null)
     {
         base.OnSpellLoad(spell, caster);
-        if (spell is not SpellCastCrystallic crystallic) return;
+        if (spell is not SpellCastCrystallic crystallic)
+            return;
+        
         crystallic.onButtonPressed += OnButtonPressedWhileCasting;
         crystallic.OnSpellUpdateEvent += OnSpellUpdateEvent;
         crystallic.onShardshotStart += OnShardshotStart;
         crystallic.OnSpellCastEvent += OnSpellCastEvent;
         crystallic.OnSpellStopEvent += OnSpellCastEvent;
     }
-    
+
     public override void OnSpellUnload(SpellData spell, SpellCaster caster = null)
     {
         base.OnSpellUnload(spell, caster);
-        if (spell is not SpellCastCrystallic crystallic) return;
+        if (spell is not SpellCastCrystallic crystallic)
+            return;
+        
         crystallic.onButtonPressed -= OnButtonPressedWhileCasting;
         crystallic.OnSpellUpdateEvent -= OnSpellUpdateEvent;
         crystallic.onShardshotStart -= OnShardshotStart;
-        
+
         crystallic.OnSpellCastEvent -= OnSpellCastEvent;
         crystallic.OnSpellStopEvent -= OnSpellCastEvent;
     }
@@ -66,30 +73,39 @@ public class SkillCrystalReservoir : SpellSkillData
 
     private void OnSpellUpdateEvent(SpellCastCharge spell)
     {
-        if (spell.currentCharge >= spell.ReadyThreshold && spell.endOnGrip) spell.endOnGrip = false; 
+        if (spell.currentCharge >= spell.ReadyThreshold && spell.endOnGrip) 
+            spell.endOnGrip = false;
     }
-    
+
     private void OnShardshotStart(SpellCastCrystallic spellCastCrystallic, EffectInstance effectInstance, EventTime eventTime, Vector3 velocity, List<Shard> shards)
     {
-        if (eventTime == EventTime.OnStart) return;
+        if (eventTime == EventTime.OnStart)
+            return;
+        
         if (spellCastCrystallic.AdditionalShards.ContainsKey(this))
         {
             spellCastCrystallic.RemoveShardCountModifier(this);
             return;
         }
-        if (wristHolders[spellCastCrystallic.spellCaster.side].numberOfPoints < maxShards) wristHolders[spellCastCrystallic.spellCaster.side].AddPoint();
+
+        if (wristHolders[spellCastCrystallic.spellCaster.side].numberOfPoints < maxShards)
+            wristHolders[spellCastCrystallic.spellCaster.side].AddPoint();
     }
-    
+
     private void OnButtonPressedWhileCasting(SpellCastCrystallic spellCastCrystallic, PlayerControl.Hand.Button button, bool pressed, bool casting)
     {
-        if (!casting) return;
-        if (button != PlayerControl.Hand.Button.Grip || !pressed || !spellCastCrystallic.Ready || wristHolders[spellCastCrystallic.spellCaster.side].numberOfPoints == 0) return;
+        if (!casting) 
+            return;
+        
+        if (button != PlayerControl.Hand.Button.Grip || !pressed || !spellCastCrystallic.Ready || wristHolders[spellCastCrystallic.spellCaster.side].numberOfPoints == 0) 
+            return;
+        
         spellCastCrystallic.AddShardCountModifier(this, wristHolders[spellCastCrystallic.spellCaster.side].numberOfPoints);
         spellCastCrystallic.readyEffectData.Spawn(spellCastCrystallic.spellCaster.Orb).Play();
         spellCastCrystallic.spellCaster.ragdollHand.HapticTick();
         wristHolders[spellCastCrystallic.spellCaster.side].ClearPoints();
     }
-    
+
     public void ToggleReservoir(Creature creature, Side side, bool active)
     {
         if (active)
@@ -99,13 +115,13 @@ public class SkillCrystalReservoir : SpellSkillData
             arcPointsManager.transform.SetParent(parent, false);
             arcPointsManager.transform.localPosition = new Vector3(-0.12f, side == Side.Left ? 0.014f : -0.014f, 0);
             arcPointsManager.transform.localRotation = Quaternion.Euler(0, -90, 0);
-            arcPointsManager.originalLocalRotation = arcPointsManager.transform.localRotation; 
-            
+            arcPointsManager.originalLocalRotation = arcPointsManager.transform.localRotation;
+
             arcPointsManager.radius = 0.07f;
             arcPointsManager.defaultRadius = arcPointsManager.radius;
             arcPointsManager.totalAngle = 360;
             arcPointsManager.startAngle = 0;
-            arcPointsManager.delayEvents = false; 
+            arcPointsManager.delayEvents = false;
             arcPointsManager.spinSpeed = 90;
             arcPointsManager.driftAmount = 0.05f;
             arcPointsManager.driftSpeed = 0.15f;
@@ -116,35 +132,42 @@ public class SkillCrystalReservoir : SpellSkillData
         else
         {
             ArcPointsManager arcPointsManager = wristHolders[side];
-            for (int i = 0; i < arcPointsManager.numberOfPoints; i++) 
+            for (int i = 0; i < arcPointsManager.numberOfPoints; i++)
                 arcPointsManager.RemovePoint();
-            
+
             arcPointsManager.onPointCreatedEvent -= OnPointCreated;
             arcPointsManager.onPointRemovedEvent -= OnPointRemoved;
-            
+
             Object.Destroy(arcPointsManager.gameObject);
-            
-            if (wristHolders.ContainsKey(side)) 
+
+            if (wristHolders.ContainsKey(side))
                 wristHolders.Remove(side);
         }
     }
 
     private void OnPointCreated(ArcPointsManager pointsManager, ArcPointsManager.PointData point)
     {
-        if (pointEffects.ContainsKey(point)) pointEffects.Remove(point);
+        if (pointEffects.ContainsKey(point))
+            pointEffects.Remove(point);
+        
         EffectInstance effectInstance = spellCastCrystallic.shardEffectData.Spawn(point.transform);
         effectInstance.Play();
         effectInstance.SetVolume(0f);
         effectInstance.SetSize(0.75f);
         effectInstance.SetDisallowedSimulationSpace(ParticleSystemSimulationSpace.World);
-        if (wristHolders.TryGetKey(pointsManager, out Side key)) Player.currentCreature.GetHand(key).HapticTick();
+        
+        if (wristHolders.TryGetKey(pointsManager, out Side key)) 
+            Player.currentCreature.GetHand(key).HapticTick();
+        
         pointEffects.Add(point, effectInstance);
         onShardAdd?.Invoke(pointsManager, point);
     }
-    
+
     private void OnPointRemoved(ArcPointsManager pointsManager, ArcPointsManager.PointData point)
     {
-        if (wristHolders.TryGetKey(pointsManager, out Side key)) Player.currentCreature.GetHand(key).HapticTick();
+        if (wristHolders.TryGetKey(pointsManager, out Side key)) 
+            Player.currentCreature.GetHand(key).HapticTick();
+        
         if (pointEffects.ContainsKey(point))
         {
             EffectInstance effectInstance = pointEffects[point];
@@ -154,6 +177,6 @@ public class SkillCrystalReservoir : SpellSkillData
             onShardRemove?.Invoke(pointsManager, point);
         }
     }
-    
+
     public delegate void ShardDelegate(ArcPointsManager pointsManager, ArcPointsManager.PointData point);
 }

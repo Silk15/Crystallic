@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ThunderRoad;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ public static class ReflectiveParticles
 
     public static void Inject(EffectInstance effectInstance, string id, Color color)
     {
-        var particleSystems = effectInstance.GetParticleSystems();
+        var particleSystems = effectInstance.GetParticleSystems().ToArray();
         for (int i = 0; i < particleSystems.Length; i++) Inject(particleSystems[i], id, color);
     }
 
@@ -63,7 +64,7 @@ public static class ReflectiveParticles
 
     public static void RemoveAll(EffectInstance effectInstance)
     {
-        var particleSystems = effectInstance.GetParticleSystems();
+        var particleSystems = effectInstance.GetParticleSystems().ToArray();
         for (int i = 0; i < particleSystems.Length; i++)
             foreach (KeyValuePair<ParticleSystem, (Gradient original, List<InjectedKey> keys)> kvp in injectedMap)
             foreach (var key in kvp.Value.keys)
@@ -73,7 +74,10 @@ public static class ReflectiveParticles
 
     public static void Remove(EffectInstance effectInstance, string id)
     {
-        var particleSystems = effectInstance.GetParticleSystems();
+        if (effectInstance == null || id.IsNullOrEmptyOrWhitespace()) 
+            return;
+        
+        var particleSystems = effectInstance.GetParticleSystems().ToArray();
         for (int i = 0; i < particleSystems.Length; i++) Remove(particleSystems[i], id);
     }
 
@@ -121,7 +125,7 @@ public static class ReflectiveParticles
 
     public static void Reset(EffectInstance effectInstance)
     {
-        var particleSystems = effectInstance.GetParticleSystems();
+        var particleSystems = effectInstance.GetParticleSystems().ToArray();
         for (int i = 0; i < particleSystems.Length; i++) if (injectedMap.ContainsKey(particleSystems[i])) Reset(particleSystems[i]);
     }
 

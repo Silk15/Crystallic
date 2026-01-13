@@ -16,10 +16,11 @@ public abstract class AttunementSkillData : SpellSkillData
     public string spellId;
     public bool injectInCast = true;
     public bool injectInThrow = true;
-    public bool injectInShards = true;
     public bool useCustomAttunementInvocation = false;
 
     protected Dictionary<SpellCastCharge, Coroutine> activeCoroutines = new();
+    public Gradient defaultGradient = new();
+    public Gradient colorGradient = new();
     public bool wasAttunedLastThrow = false;
     protected bool allowAttunement;
     protected int spellHashId;
@@ -38,6 +39,33 @@ public abstract class AttunementSkillData : SpellSkillData
         base.OnCatalogRefresh();
         spellHashId = Catalog.GetData<SpellCastCharge>(spellId)?.hashId ?? 0;
         crystallicHashId = Catalog.GetData<SpellCastCrystallic>("Crystallic")?.hashId ?? 0;
+        colorGradient.SetKeys(new[]
+        {
+            new GradientColorKey(colorModifier, 0),
+            new GradientColorKey(colorModifier, 1)
+        }, new []
+        {
+            new GradientAlphaKey(0, 0),
+            new GradientAlphaKey(1, 0.5f),
+            new GradientAlphaKey(0, 1)
+        });
+        
+        defaultGradient.SetKeys(new[]
+        {
+            new GradientColorKey(Color.white, 0),
+            new GradientColorKey(Color.white, 1)
+        }, new []
+        {
+            new GradientAlphaKey(0, 0),
+            new GradientAlphaKey(1, 0.5f),
+            new GradientAlphaKey(0, 1)
+        });
+    }
+
+    public override void OnSkillUnloaded(SkillData skillData, Creature creature)
+    {
+        base.OnSkillUnloaded(skillData, creature);
+        wasAttunedLastThrow = false;
     }
 
     public override IEnumerator LoadAddressableAssetsCoroutine() => Catalog.LoadAssetCoroutine<Mesh>(runeMeshAddress, m => mesh = m, $"{id} Mesh Asset");
@@ -56,6 +84,7 @@ public abstract class AttunementSkillData : SpellSkillData
         {
             spellCastCharge.OnSpellCastEvent += OnSpellCast;
             spellCastCharge.OnSpellStopEvent += OnSpellStop;
+            
             if (spellCastCharge is SpellCastCrystallic spellCastCrystallic)
                 spellCastCrystallic.OnSpellThrowEvent += OnSpellThrowEvent;
         }
@@ -66,13 +95,16 @@ public abstract class AttunementSkillData : SpellSkillData
     public override void OnSpellUnload(SpellData spell, SpellCaster caster = null)
     {
         base.OnSpellUnload(spell, caster);
-        if (spell is not SpellCastCharge spellCastCharge || caster == null || useCustomAttunementInvocation) return;
+        if (spell is not SpellCastCharge spellCastCharge || caster == null || useCustomAttunementInvocation) 
+            return;
+        
         if (spellCastCharge.hashId == spellHashId || spell.hashId == crystallicHashId)
         {
             spellCastCharge.OnSpellCastEvent -= OnSpellCast;
             spellCastCharge.OnSpellStopEvent -= OnSpellStop;
             SpellCastCrystallic crystallic;
             SpellCastCharge other;
+            
             if (spell is SpellCastCrystallic spellCastCrystallic)
             {
                 crystallic = spellCastCrystallic;
@@ -85,7 +117,6 @@ public abstract class AttunementSkillData : SpellSkillData
                 crystallic = spellCastCharge.spellCaster.other.spellInstance as SpellCastCrystallic;
                 other = spellCastCharge;
             }
-
             if (crystallic != null && other != null && other.hashId == spellHashId && crystallic.hashId == crystallicHashId)
             {
                 OnAttunementStop(crystallic, other);
@@ -96,7 +127,12 @@ public abstract class AttunementSkillData : SpellSkillData
 
     private void OnSpellCast(SpellCastCharge spell)
     {
-        if (activeCoroutines.TryGetValue(spell, out var coroutine)) GameManager.local.StopCoroutine(coroutine);
+        if (activeCoroutines.TryGetValue(spell, out var coroutine))
+        {
+            GameManager.local.StopCoroutine(coroutine);
+            activeCoroutines.Remove(spell);
+        }
+        
         activeCoroutines.Add(spell, GameManager.local.StartCoroutine(ChargeRoutine(spell, OnSpellReady)));
     }
 
@@ -108,7 +144,9 @@ public abstract class AttunementSkillData : SpellSkillData
             activeCoroutines.Remove(spell);
         }
 
-        if (!allowAttunement) return;
+        if (!allowAttunement) 
+            return;
+        
         SpellCastCrystallic crystallic;
         SpellCastCharge other;
         if (spell is SpellCastCrystallic c)
@@ -132,7 +170,10 @@ public abstract class AttunementSkillData : SpellSkillData
     private void OnSpellReady(SpellCastCharge spell)
     {
         allowAttunement = true;
-        if (IsAttuned) return;
+        
+        if (IsAttuned) 
+            return;
+        
         SpellCastCrystallic crystallic;
         SpellCastCharge other;
         if (spell is SpellCastCrystallic c)
@@ -165,8 +206,11 @@ public abstract class AttunementSkillData : SpellSkillData
 
     private void OnShardshotStart(SpellCastCrystallic spellCastCrystallic, EffectInstance effectInstance, EventTime eventTime, Vector3 velocity, List<Shard> shards)
     {
-        if (eventTime == EventTime.OnStart || !injectInThrow) return;
+        if (eventTime == EventTime.OnStart || !injectInThrow)
+            return;
+        
         ReflectiveParticles.Inject(effectInstance, $"attunementcast{id}", colorModifier);
+        effectInstance.SetMainGradient(colorGradient);
 
         foreach (Shard shard in shards)
         {
@@ -187,6 +231,7 @@ public abstract class AttunementSkillData : SpellSkillData
             if (eventTime == EventTime.OnEnd)
             {
                 ReflectiveParticles.Remove(shard.effectInstance, $"attunementshard{shards.IndexOf(shard)}{id}");
+                effectInstance.SetMainGradient(defaultGradient);
                 shard.onDespawn -= OnShardDespawn;
             }
         }
@@ -208,8 +253,10 @@ public abstract class AttunementSkillData : SpellSkillData
     {
         while (spellCastCharge.currentCharge < spellCastCharge.ReadyThreshold && !spellCastCharge.Ready)
         {
-            if (!spellCastCharge.spellCaster.isFiring) yield break;
-            yield return Yielders.EndOfFrame;
+            if (!spellCastCharge.spellCaster.isFiring)
+                yield break;
+            
+            yield return null;
         }
 
         onComplete?.Invoke(spellCastCharge);

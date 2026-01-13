@@ -25,14 +25,13 @@ public class ImbueGravityBehaviour : ImbueBehaviour
     
     [ModOption("Lithohammer Lifetime", "The lifetime of each tether."), ModOptionCategory("Lithohammer", 5), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float lifetime = 3f;
-
-    public StatusData statusData;
+    public Dictionary<Creature, JointEffect> jointedBodies = new();
     public EffectData tetherEffectData;
+    public string tetherEffectId = "GravityTether";
     public EffectData snapEffectData;
     public string snapEffectId = "GravitySnap";
     public SpellCastGravity spellCastGravity;
-    public string tetherEffectId = "GravityTether";
-    public Dictionary<Creature, JointEffect> jointedBodies = new();
+    public StatusData statusData;
 
     public override void Load(CrystalImbueSkillData handler, ThunderRoad.Imbue imbue)
     {
@@ -58,7 +57,9 @@ public class ImbueGravityBehaviour : ImbueBehaviour
     {
         var item = collisionInstance?.sourceColliderGroup?.collisionHandler?.item;
         var part = collisionInstance?.targetColliderGroup?.collisionHandler?.ragdollPart;
-        if (part && item && !part.ragdoll.creature.isPlayer && collisionInstance.impactVelocity.magnitude > 18) TryCreateJoint(collisionInstance, item, part);
+        
+        if (part && item && !part.ragdoll.creature.isPlayer && collisionInstance.impactVelocity.sqrMagnitude > 18f * 18f / (Common.IsAndroid ? 1.5f : 1f)) 
+            TryCreateJoint(collisionInstance, item, part);
     }
 
     public IEnumerator JointExpirationRoutine(Item source, RagdollPart ragdollPart)
@@ -69,13 +70,13 @@ public class ImbueGravityBehaviour : ImbueBehaviour
         bool velocityMet = false;
         while (Time.time - startTime < 2f)
         {
-            if (source.physicBody.velocity.magnitude < 12.5f)
+            if (source.physicBody.velocity.sqrMagnitude < 12.5f * 12.5f / (Common.IsAndroid ? 1.5f : 1f))
             {
                 velocityMet = true;
                 break;
             }
 
-            yield return Yielders.EndOfFrame;
+            yield return null;
         }
         if (velocityMet)
         {
@@ -91,7 +92,7 @@ public class ImbueGravityBehaviour : ImbueBehaviour
                     break;
                 }
                 currentPart = currentPart.parentPart;
-                yield return Yielders.EndOfFrame;
+                yield return null;
             }
         }
 
@@ -125,6 +126,7 @@ public class ImbueGravityBehaviour : ImbueBehaviour
     public override void Unload(ThunderRoad.Imbue imbue)
     {
         base.Unload(imbue);
+        
         foreach (var kvp in jointedBodies.ToList())
         {
             var creature = kvp.Key;

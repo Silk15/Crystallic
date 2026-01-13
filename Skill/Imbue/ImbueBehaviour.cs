@@ -8,15 +8,17 @@ public abstract class ImbueBehaviour : ThunderBehaviour
     public CrystalImbueSkillData crystalImbueSkillData;
     public EffectInstance imbueEffect;
     public ThunderRoad.Imbue imbue;
-
     private float lastTime;
     private float cooldown = 0.05f;
+
+    public new bool enabled;
 
     public override ManagedLoops EnabledManagedLoops => ManagedLoops.Update;
 
     public virtual void Load(CrystalImbueSkillData crystalImbueSkillData, ThunderRoad.Imbue imbue)
     {
         this.crystalImbueSkillData = crystalImbueSkillData;
+        enabled = true;
         this.imbue = imbue;
         imbueEffect = crystalImbueSkillData.imbueEffectData.Spawn(imbue.colliderGroup.transform);
         imbueEffect.SetRenderer(imbue.colliderGroup.imbueEffectRenderer, false);
@@ -31,6 +33,7 @@ public abstract class ImbueBehaviour : ThunderBehaviour
             lastTime = Time.time;
             Hit(collisionInstance, spellData);
             crystalImbueSkillData.imbueCollisionEffectData?.Spawn(collisionInstance.contactPoint, Quaternion.LookRotation(collisionInstance.contactNormal, collisionInstance.sourceCollider.transform.up), collisionInstance.targetCollider.transform).Play();
+            
             if (crystalImbueSkillData.crystalliseOnHit && collisionInstance?.targetColliderGroup?.collisionHandler?.Entity is Creature creature && creature != null && creature != spellData.spellCaster.mana.creature && collisionInstance.targetMaterial != null && !collisionInstance.targetMaterial.IsMetal())
                 creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), crystalImbueSkillData.spellId), crystalImbueSkillData.spellId));
         }
@@ -52,5 +55,6 @@ public abstract class ImbueBehaviour : ThunderBehaviour
     {
         imbueEffect.End();
         imbue.OnImbueHit -= OnImbueHit;
+        enabled = false;
     }
 }

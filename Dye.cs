@@ -9,6 +9,18 @@ namespace Crystallic;
 
 public class Dye : ThunderScript
 {
+    
+    
+    public static bool rainbowModeWasActivatedThisSession = false;
+    public static bool rainbowMode = false;
+
+    [ModOption("Rainbow Mode", "Modifies a few effects turning them into rainbows. If you have epilepsy I recommend you avoid this."), ModOptionCategory("Crystallisation", -1), ModOptionOrder(2)]
+    public static void SetRainbowMode(bool active)
+    {
+        rainbowMode = active;
+        if (active) rainbowModeWasActivatedThisSession = true;
+    }
+    
     public static List<DyeData> dyeData = new();
 
     public override void ScriptEnable()
@@ -34,19 +46,33 @@ public class Dye : ThunderScript
     
     public static Color GetEvaluatedColor(string originSpellId, string hitSpellId)
     {
-        var color = new Color(1, 1, 1, 1);
-        foreach (var data in dyeData)
-        {
-            if (data.spellId != originSpellId) continue;
-            if (data.spellId == hitSpellId) return data.color;
-            foreach (var mixture in data.dyeMixtures)
-                if (mixture.mixSpellId == hitSpellId)
-                    color = mixture.mixColor;
-        }
+        var result = TryGetColor(originSpellId, hitSpellId);
+        if (result.found)
+            return result.color;
 
-        return color;
+        result = TryGetColor(hitSpellId, originSpellId);
+        if (result.found)
+            return result.color;
+
+        return new Color(1, 1, 1, 1);
     }
 
+    private static (bool found, Color color) TryGetColor(string a, string b)
+    {
+        foreach (var data in dyeData)
+        {
+            if (data.spellId != a) continue;
+
+            if (data.spellId == b)
+                return (true, data.color);
+            
+            foreach (var mixture in data.dyeMixtures)
+                if (mixture.mixSpellId == b)
+                    return (true, mixture.mixColor);
+        }
+
+        return (false, default);
+    }
 
     public static ColorType GetColorType(string originSpellId, string hitSpellId)
     {
@@ -61,7 +87,5 @@ public class Dye : ThunderScript
 
         return ColorType.Solid;
     }
-
-    private static DyeData FindDyeDataById(string id) => dyeData.FirstOrDefault(d => d.id == id);
 }
 

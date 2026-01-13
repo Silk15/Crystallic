@@ -11,44 +11,44 @@ namespace Crystallic.Skill.Spell.Attunement;
 
 public class SkillLithotether : AttunementSkillData
 {
-    [ModOption("Lithotether Spring", "The spring applied to the tether connecting two physicBodies, this is the value that decides how tightly two limbs are bound.", order = 0), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
+    [ModOption("Lithotether Spring", "The strength of each lithotether, this value is like a rope holding two things together, the higher this value - The tighter the bond.", order = 0), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
     public static float spring = 100f;
 
-    [ModOption("Lithotether Damper", "The damping applied to the tether connecting two physicBodies, this acts as a smoother, damping out movement to act floaty.", order = 1), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
+    [ModOption("Lithotether Damper", "The dampening applied to each lithotether, this tunes the spring to make it feel smooth and floaty.", order = 1), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
     public static float damper = 50f;
 
-    [ModOption("Min Lithotether Distance", "The min distance two physicBodies can be from one another.", order = 2), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
+    [ModOption("Min Lithotether Distance", "The minimum length a lithotether can be.", order = 2), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float minDistance = 5f;
 
-    [ModOption("Max Lithotether Distance", "The max distance two physicBodies can be from one another.", order = 3), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
+    [ModOption("Max Lithotether Distance", "The maximum length a lithotether can be.", order = 3), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float maxDistance = 10f;
 
-    [ModOption("Gravity Well Lifetime", "Controls the time the gravity-attuned implosion lasts.", order = 3), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1f, 100, 1f)]
+    [ModOption("Gravity Well Lifetime", "Controls the time the gravity-attuned implosion lasts.", order = 4), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1f, 100, 1f)]
     public static float gravityWellLifetime = 2f;
 
     public Vector2 minMaxTetherLifetime = new(2, 6);
-
     public StatusData statusData;
     public EffectData snapEffectData;
     public EffectData tetherEffectData;
     public EffectData lithotetherEffectData;
     public EffectData impactPulseEffectData;
     public EffectData gravityWellEffectData;
-
     public string snapEffectId = "GravitySnap";
     public string tetherEffectId = "GravityTether";
     public string impactPulseEffectId = "ImpactPulse";
     public string lithotetherEffectId = "Lithotether";
     public string gravityWellEffectId = "GravityWell";
-
     public SpellCastGravity spellCastGravity;
     public SkillShardImplosion skillShardImplosion;
     public Dictionary<Rigidbody, JointEffect> jointedParts = new();
-
+    
+    protected EffectData shardHitEffectData;
+    public string shardHitEffectId = "HitComboGravity";
 
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
+        shardHitEffectData = Catalog.GetData<EffectData>(shardHitEffectId);
         gravityWellEffectData = Catalog.GetData<EffectData>(gravityWellEffectId);
         impactPulseEffectData = Catalog.GetData<EffectData>(impactPulseEffectId);
         lithotetherEffectData = Catalog.GetData<EffectData>(lithotetherEffectId);
@@ -62,8 +62,8 @@ public class SkillLithotether : AttunementSkillData
         base.OnLateSkillsLoaded(skillData, creature);
         if (creature.TryGetSkill("ShardImplosion", out skillShardImplosion))
         {
-            skillShardImplosion.onImplode -= OnImplode;
-            skillShardImplosion.onImplode += OnImplode;
+            skillShardImplosion.onExplode -= OnExplode;
+            skillShardImplosion.onExplode += OnExplode;
         }
     }
 
@@ -71,10 +71,10 @@ public class SkillLithotether : AttunementSkillData
     {
         base.OnSkillUnloaded(skillData, creature);
         if (skillShardImplosion != null) 
-            skillShardImplosion.onImplode -= OnImplode;
+            skillShardImplosion.onExplode -= OnExplode;
     }
 
-    private void OnImplode(SpellCastCrystallic spellCastCrystallic, Vector3 position, EffectInstance effectInstance, (ThunderEntity, Vector3)[] hitEntities)
+    private void OnExplode(SpellCastCrystallic spellCastCrystallic, Vector3 position, EffectInstance effectInstance, (ThunderEntity, Vector3)[] hitEntities)
     {
         if (wasAttunedLastThrow)
             GameManager.local.StartCoroutine(ImplosionCoroutine(spellCastCrystallic, position, hitEntities));
@@ -117,8 +117,9 @@ public class SkillLithotether : AttunementSkillData
         }
     }
 
-    private void OnShardHit(Shard shard, CollisionInstance collisionInstance)
+    private void OnShardHit(Shard shard, CollisionInstance collisionInstance, Shard.ShardArgs customHitEffect)
     {
+        customHitEffect.SetEffect(shardHitEffectData);
         if (collisionInstance.targetColliderGroup?.collisionHandler?.ragdollPart is RagdollPart ragdollPart && !jointedParts.ContainsKey(ragdollPart.physicBody.rigidBody))
         {
             impactPulseEffectData.Spawn(collisionInstance.contactPoint, Quaternion.identity).Play();
@@ -186,7 +187,6 @@ public class SkillLithotether : AttunementSkillData
 
     public IEnumerator ImplosionCoroutine(SpellCastCrystallic spellCastCrystallic, Vector3 position, (ThunderEntity, Vector3)[] hitEntities)
     {
-        yield return Yielders.ForSeconds(0.25f);
         EffectData pushEffectData = Catalog.GetData<EffectData>(spellCastGravity.pushEffectId);
         Rigidbody source = new GameObject("Gravity Well").AddComponent<Rigidbody>();
         source.transform.SetPositionAndRotation(position, Quaternion.identity);
@@ -206,6 +206,7 @@ public class SkillLithotether : AttunementSkillData
             switch (entity.Item1)
             {
                 case Creature creature when !creature.isPlayer && creature.ragdoll.GetClosestPart(entity.Item2, 2f, out var part):
+                    creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Gravity"), "Gravity"));
                     target = part.physicBody.rigidBody;
                     creature.ragdoll.SetState(Ragdoll.State.Destabilized);
                     pushEffectData.Spawn(creature.Center + Vector3.down, Quaternion.LookRotation(Vector3.up)).Play();
@@ -236,7 +237,7 @@ public class SkillLithotether : AttunementSkillData
         while (elapsed < gravityWellLifetime)
         {
             elapsed += Time.deltaTime;
-            yield return Yielders.EndOfFrame;
+            yield return null;
             gravityWell.SetIntensity(Mathf.Lerp(1, 0, elapsed / gravityWellLifetime));
         }
 

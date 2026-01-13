@@ -11,17 +11,65 @@ namespace Crystallic;
 
 public class BrainModuleCrystal : BrainData.Module
 {
-    [ModOption("Allow Crystallisation", "Controls whether any entity can be crystallised, by any source.", order = 0), ModOptionCategory("Crystallisation", -1)]
-    public static bool allowCrystallisation = true;
+    [ModOption("Allow Player Crystallisation", "Controls whether the player can be crystallised by any source.", order = 1, defaultValueIndex = 1), ModOptionCategory("Crystallisation", -1)]
+    public static void TogglePlayerCrystallisation(bool active)
+    {
+        allowPlayerCrystallisation = active;
+        if (!active && Player.currentCreature && Player.currentCreature.HasStatus("Crystallised")) 
+            Player.currentCreature.Clear("Crystallised");
+    }
+
+    [ModOption("Speed Multiplier", "Controls how slowed you and other NPCs are while crystallised.\n\n- 0 = Locked in place\n- 1 = No slowing", defaultValueIndex = 0), ModOptionFloatValues(0, 1, 0.1f), ModOptionOrder(3), ModOptionSlider, ModOptionCategory("Crystallisation", -1)]
+    public static void SetCrystallisationSpeedMultiplier(float multiplier)
+    {
+        speedMultiplier = multiplier;
+        if (Player.currentCreature)
+            foreach (Creature creature in CrystallisedCreatures)
+            {
+                BrainModuleCrystal brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
+                creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(brainModuleCrystal);
+                creature.currentLocomotion.globalMoveSpeedMultiplier.Add(brainModuleCrystal, speedMultiplier);
+            }
+    }
+
+    [ModOption("Damage Multiplier", "Controls how much damage you and other NPCs take while crystallised.\n\n- 0 = No damage\n- 1 = Regular amount\n- 5 = 5x damage taken", defaultValueIndex = 15), ModOptionFloatValues(0, 5, 0.1f), ModOptionOrder(4), ModOptionSlider, ModOptionCategory("Crystallisation", -1)]
+    public static void SetCrystallisationDamageMultiplier(float multiplier)
+    {
+        damageMultiplier = multiplier;
+        if (Player.currentCreature)
+            foreach (Creature creature in CrystallisedCreatures)
+            {
+                BrainModuleCrystal brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
+                creature.RemoveDamageMultiplier(brainModuleCrystal);
+                creature.SetDamageMultiplier(brainModuleCrystal, damageMultiplier);
+            }
+    }
+
+    [ModOption(" Charge Speed Multiplier", "Controls how much you and other NPCs spell casting speed is slowed while crystallised.\n\n- 0 = Not able to cast\n- 1 = Regular speed\n- 5 = 5x as quick", defaultValueIndex = 1), ModOptionFloatValues(0, 5, 0.1f), ModOptionOrder(5), ModOptionSlider, ModOptionCategory("Crystallisation", -1)]
+    public static void SetCrystallisationChargeSpeedMultiplier(float multiplier)
+    {
+        chargeMultiplier = multiplier;
+        if (Player.currentCreature)
+            foreach (Creature creature in CrystallisedCreatures)
+            {
+                BrainModuleCrystal brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
+                creature.mana?.chargeSpeedMult.Remove(brainModuleCrystal);
+                creature.mana?.chargeSpeedMult.Add(brainModuleCrystal, chargeMultiplier);
+            }
+    }
+
+    public static HashSet<Creature> CrystallisedCreatures { get; } = new();
     
-    [ModOption("Allow Player Crystallisation", "Controls whether the player can be crystallised, by any source.", order = 1), ModOptionCategory("Crystallisation", -1)]
     public static bool allowPlayerCrystallisation = true;
-    
-    [ModOption("Max Crystallisation Particles", "Controls the maximum amount of particles the crystallisation Vfx can display at one time.", order = 3), ModOptionSlider, ModOptionCategory("Crystallisation", -1), ModOptionIntValues(10, 50, 1)]
-    public static int maxParticles = 35;
+    public static int totalCrystallisedCreatures = 0;
+
+    public static float damageMultiplier = 1.5f;
+    public static float chargeMultiplier = 0.1f;
+    public static float speedMultiplier = 0f;
     
     public List<BoneEffectPair> boneEffectPairs = new();
     public List<EffectInstance> instances = new();
+    
     public Coroutine crystalliseCoroutine;
     public BoneEffectPair currentBoneMap;
     public EffectData endEffectData;
@@ -30,9 +78,8 @@ public class BrainModuleCrystal : BrainData.Module
     public bool allowBreakForce;
     public bool isCrystallised;
     
-    public event OnCrystalliseStart onCrystalliseStart;
-    public event OnCrystalliseStop onCrystalliseStop;
-    public event Action onParticleCountUpdated;
+    public static event OnCrystallise onCreatureCrystallised;
+    public event OnCrystallise onCrystallise;
 
     public override void Load(Creature creature)
     {
@@ -79,14 +126,20 @@ public class BrainModuleCrystal : BrainData.Module
                     instance?.Play();
                     instances.Add(instance);
                 }
-            SetMaxParticles(maxParticles);
+            SetMaxParticles(CrystallisationPlatformController.maxParticles);
+            if (Dye.rainbowMode)
+                lerper.StartRainbow(instances.GetParticleSystems().ToArray());
         }
         else
+        {
+            lerper.StopRainbow();
             for (var i = instances.Count - 1; i >= 0; i--)
             {
                 instances[i]?.End();
                 instances.RemoveAt(i);
             }
+            
+        }
     }
 
     public void SetMaxParticles(int max)
@@ -100,23 +153,24 @@ public class BrainModuleCrystal : BrainData.Module
 
     public void StartCrystallise()
     {
-        if (crystalliseCoroutine != null || isCrystallised || !allowCrystallisation || (creature.isPlayer && !allowPlayerCrystallisation)) return;
+        if (crystalliseCoroutine != null || isCrystallised || (creature.isPlayer && !allowPlayerCrystallisation) || totalCrystallisedCreatures >= CrystallisationPlatformController.maxCrystallisedEntities) return;
         crystalliseCoroutine = creature.StartCoroutine(CrystalliseRoutine(creature));
         IEnumerator CrystalliseRoutine(Creature creature)
         {
+            if (!CrystallisedCreatures.Contains(creature)) 
+                CrystallisedCreatures.Add(creature);
+            
+            totalCrystallisedCreatures++;
             isCrystallised = true;
             SetEffects(true);
             yield return Yielders.ForSeconds(0.25f);
             InvokeCrystallise(true);
             creature.locomotion.allowMove = false;
             creature.locomotion.allowTurn = false;
-            creature.currentLocomotion.globalMoveSpeedMultiplier.Add(this, 0);
-            creature.mana.chargeSpeedMult.Add(this, 0.1f);
+            creature.currentLocomotion.globalMoveSpeedMultiplier.Add(this, speedMultiplier);
+            creature.mana?.chargeSpeedMult.Add(this, chargeMultiplier);
             
-            if (creature.isPlayer)
-                creature.currentLocomotion.globalMoveSpeedMultiplier.Add(this, 0);
-            
-            creature.SetDamageMultiplier(this, 1.5f);
+            creature.SetDamageMultiplier(this, damageMultiplier);
             if (!creature.isPlayer)
             {
                 creature.brain.Stop();
@@ -145,13 +199,13 @@ public class BrainModuleCrystal : BrainData.Module
     {
         if (creature)
         { 
-            if (creature.isPlayer)
-                creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(this);
+            if (CrystallisedCreatures.Contains(creature))
+                CrystallisedCreatures.Remove(creature);
             
             creature.locomotion.allowMove = true;
             creature.locomotion.allowTurn = true;
             creature.currentLocomotion.globalMoveSpeedMultiplier.Remove(this);
-            creature.mana.chargeSpeedMult.Remove(this);
+            creature.mana?.chargeSpeedMult.Remove(this);
             creature.RemoveDamageMultiplier(this);
             if (!creature.isPlayer)
             {
@@ -162,20 +216,21 @@ public class BrainModuleCrystal : BrainData.Module
 
             SetEffects(false);
             isCrystallised = false;
+            totalCrystallisedCreatures--;
             var instance = endEffectData.Spawn(creature.ragdoll.targetPart.transform);
             instance.Play();
+            instance.SetColor(lerper.currentColor);
             InvokeCrystallise(false);
         }
     }
     
     public void InvokeCrystallise(bool active)
     {
-        if (active) onCrystalliseStart?.Invoke(creature);
-        else onCrystalliseStop?.Invoke(creature);
+        onCrystallise?.Invoke(this, creature, active);
+        onCreatureCrystallised?.Invoke(this, creature, active);
     }
     
-    public delegate void OnCrystalliseStart(Creature creature);
-    public delegate void OnCrystalliseStop(Creature creature);
+    public delegate void OnCrystallise(BrainModuleCrystal brainModuleCrystal, Creature creature, bool active);
 
     [Serializable]
     public class BoneEffectPair

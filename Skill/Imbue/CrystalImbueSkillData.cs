@@ -26,14 +26,19 @@ public class CrystalImbueSkillData : SpellSkillData
         imbueCollisionEffectData = Catalog.GetData<EffectData>(imbueHitEffectId);
         imbueEffectData = Catalog.GetData<EffectData>(imbueEffectId);
         type = Type.GetType(typeAddress);
-        if (type == null || !type.IsSubclassOf(typeof(ImbueBehaviour))) Debug.LogError($"[Crystallic] ImbueBehaviour Type {typeAddress} is not a subclass of ImbueBehaviour!");
+        
+        if (type == null || !type.IsSubclassOf(typeof(ImbueBehaviour)))
+            Debug.LogError($"[Crystallic] ImbueBehaviour Type {typeAddress} is not a subclass of ImbueBehaviour!");
     }
 
     public override void OnImbueLoad(SpellData spell, ThunderRoad.Imbue imbue)
     {
         base.OnImbueLoad(spell, imbue);
         var item = imbue.colliderGroup.collisionHandler.item;
-        if (spell.id != spellId || previousImbues.IsNullOrEmpty() || !previousImbues.ContainsKey(item) || (previousImbues.TryGetValue(item, out string id) && id != "Crystallic")) return;
+        
+        if (spell.id != spellId || previousImbues.IsNullOrEmpty() || !previousImbues.ContainsKey(item) || (previousImbues.TryGetValue(item, out string id) && id != "Crystallic"))
+            return;
+        
         var behaviour = (ImbueBehaviour)imbue.gameObject.AddComponent(type);
         behaviour.Load(this, imbue);
     }

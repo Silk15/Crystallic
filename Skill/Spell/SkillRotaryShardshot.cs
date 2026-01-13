@@ -9,15 +9,14 @@ namespace Crystallic.Skill.Spell;
 
 public class SkillRotaryShardshot : SpellSkillData
 {
-    public Dictionary<Side, Coroutine> rotaryCoroutines = new();
-    public Dictionary<Side, bool> shardshotEnabled = new();
-
     [ModOption("Targeting Angle", "Controls the angle of aim assist."), ModOptionFloatValues(0f, 360f, 1f), ModOptionSlider, ModOptionCategory("Rotary Shardshot", 8)]
     public static float targetingAngle = 20f;
     
     [ModOption("Targeting Max Distance", "Controls the max distance of aim assist."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Rotary Shardshot", 8)]
     public static float targetingDistance = 5f;
-
+    
+    public Dictionary<Side, Coroutine> rotaryCoroutines = new();
+    public Dictionary<Side, bool> shardshotEnabled = new();
     public SkillCrystalReservoir skillCrystalReservoir;
 
     public override void OnCatalogRefresh()
@@ -36,7 +35,9 @@ public class SkillRotaryShardshot : SpellSkillData
     public override void OnSpellLoad(SpellData spell, SpellCaster caster = null)
     {
         base.OnSpellLoad(spell, caster);
-        if (spell is not SpellCastCrystallic spellCastCrystallic) return;
+        if (spell is not SpellCastCrystallic spellCastCrystallic)
+            return;
+        
         spellCastCrystallic.onButtonPressed -= OnButtonPressed;
         spellCastCrystallic.onButtonPressed += OnButtonPressed;
     }
@@ -44,13 +45,17 @@ public class SkillRotaryShardshot : SpellSkillData
     public override void OnSpellUnload(SpellData spell, SpellCaster caster = null)
     {
         base.OnSpellUnload(spell, caster);
-        if (spell is not SpellCastCrystallic spellCastCrystallic) return;
+        if (spell is not SpellCastCrystallic spellCastCrystallic)
+            return;
+        
         spellCastCrystallic.onButtonPressed -= OnButtonPressed;
     }
 
     private void OnButtonPressed(SpellCastCrystallic spellCastCrystallic, PlayerControl.Hand.Button button, bool pressed, bool casting)
     {
-        if (casting) return;
+        if (casting)
+            return;
+        
         Side side = spellCastCrystallic.spellCaster.side;
         switch (button)
         {
@@ -64,25 +69,25 @@ public class SkillRotaryShardshot : SpellSkillData
 
             case PlayerControl.Hand.Button.Use when pressed && shardshotEnabled[side] && spellCastCrystallic.spellCaster.ragdollHand.grabbedHandle == null && spellCastCrystallic.spellCaster.telekinesis.catchedHandle == null && skillCrystalReservoir.wristHolders[side].GetRandomPoint() is ArcPointsManager.PointData pointData:
 
-                Transform orbTransform = spellCastCrystallic.spellCaster.Orb;
+                Transform hand = spellCastCrystallic.spellCaster.ragdollHand.transform;
                 Transform spawnTransform = pointData.transform;
-                Vector3 direction = orbTransform.up.normalized;
+                Vector3 direction = spellCastCrystallic.spellCaster.ragdollHand.PointDir.normalized;
                 Vector3 velocity = direction * 5;
 
-                if (Physics.Raycast(orbTransform.position, direction, out RaycastHit hit, Mathf.Infinity, ShardRaycastMask))
+                if (Physics.Raycast(hand.position, direction, out RaycastHit hit, Mathf.Infinity, ShardRaycastMask))
                 {
                     Vector3 towardsHit = (hit.point - spawnTransform.position).normalized;
                     velocity = Vector3.Lerp(direction, towardsHit, 0.5f).normalized * 5;
                 }
 
-                ThunderEntity thunderEntity = Creature.AimAssist(orbTransform.position, velocity.normalized, targetingDistance, targetingAngle, out Transform targetPoint, Filter.EnemyOf(spellCastCrystallic.spellCaster.ragdollHand.ragdoll.creature), CreatureType.Golem | CreatureType.Human);
+                ThunderEntity thunderEntity = Creature.AimAssist(hand.position, velocity.normalized, targetingDistance, targetingAngle, out Transform targetPoint, Filter.EnemyOf(spellCastCrystallic.spellCaster.ragdollHand.ragdoll.creature), CreatureType.Golem | CreatureType.Human);
                 if (thunderEntity != null)
                 {
                     Vector3 offset = thunderEntity is Creature c ? c.locomotion.moveDirection * 0.5f : Vector3.zero;
                     velocity = (targetPoint.position + offset - spawnTransform.position).normalized * velocity.magnitude;
                 }
 
-                spellCastCrystallic.FireShard(spellCastCrystallic.shardEffectData, spawnTransform.position, velocity * 2.5f, spellCastCrystallic.ShardLifetime, shard =>
+                spellCastCrystallic.FireShard(spellCastCrystallic.shardEffectData, spawnTransform.position, velocity * 2.5f, spellCastCrystallic.ShardLifetime, 1.0f, shard =>
                 {
                     spellCastCrystallic.spellCaster.ragdollHand.HapticTick();
                     skillCrystalReservoir.wristHolders[spellCastCrystallic.spellCaster.ragdollHand.side].RemovePoint(pointData);
@@ -114,13 +119,13 @@ public class SkillRotaryShardshot : SpellSkillData
 
         while (elapsed < total)
         {
-            if (hand.grabbedHandle != null)
+            if (hand.grabbedHandle != null || hand.caster.telekinesis.catchedHandle != null || hand.climb.gripCollider != null)
             {
                 pointsManager.radius = pointsManager.defaultRadius;
                 yield break;
             }
 
-            yield return Yielders.EndOfFrame;
+            yield return null;
             elapsed += Time.deltaTime;
             pointsManager.radius = Mathf.Lerp(enabled ? pointsManager.defaultRadius : pointsManager.radius, enabled ? 0.15f : pointsManager.defaultRadius, Mathf.Clamp01(elapsed / total));
         }

@@ -1,4 +1,5 @@
 ﻿using ThunderRoad;
+using ThunderRoad.Skill.Spell;
 using UnityEngine;
 using UnityEngine.Serialization;
 

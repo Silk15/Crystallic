@@ -33,6 +33,9 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <ItemGroup>
+        <Reference Include="Newtonsoft.Json">
+          <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Newtonsoft.Json.dll</HintPath>
+        </Reference>
         <Reference Include="Oculus.VR">
           <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed\Oculus.VR.dll</HintPath>
         </Reference>
@@ -97,16 +100,25 @@
         <Compile Include="BrainModuleCrystal.cs" />
         <Compile Include="ColorType.cs" />
         <Compile Include="CrystallisationExtensions.cs" />
+        <Compile Include="CrystallisationPlatformController.cs" />
         <Compile Include="Crystallised.cs" />
         <Compile Include="CrystallisedParams.cs" />
         <Compile Include="Dye.cs" />
         <Compile Include="DyeData.cs" />
         <Compile Include="DyeMixture.cs" />
         <Compile Include="Extensions.cs" />
+        <Compile Include="Golem\Ability\Throw\GolemCrystalCore.cs" />
+        <Compile Include="Golem\GolemAbilityData.cs" />
+        <Compile Include="Golem\GolemAbilityModule.cs" />
+        <Compile Include="Golem\GolemCrystalCoreData.cs" />
+        <Compile Include="Golem\GolemSprayData.cs" />
+        <Compile Include="Golem\GolemThrowData.cs" />
         <Compile Include="ItemModuleCrystalVfx.cs" />
         <Compile Include="ItemModuleShard.cs" />
         <Compile Include="JointManager.cs" />
         <Compile Include="Lerper.cs" />
+        <Compile Include="MaxDepthDetector.cs" />
+        <Compile Include="ModOptionPlatformIndex.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
         <Compile Include="ReflectiveParticles.cs" />
         <Compile Include="Skill\Imbue\CrystalImbueSkillData.cs" />
@@ -117,17 +129,29 @@
         <Compile Include="Skill\JointEffect.cs" />
         <Compile Include="Skill\Shard.cs" />
         <Compile Include="Skill\SkillCrystallineDarts.cs" />
+        <Compile Include="Skill\SkillFractalEruption.cs" />
         <Compile Include="Skill\SkillFragility.cs" />
+        <Compile Include="Skill\SpellMerge\SpellMergeFractalInferno.cs" />
         <Compile Include="Skill\SpellMerge\SpellMergeCrystallic.cs" />
         <Compile Include="Skill\Spell\Attunement\AttunementRuneBehaviour.cs" />
         <Compile Include="Skill\Spell\Attunement\AttunementSkillData.cs" />
         <Compile Include="Skill\Spell\Attunement\SkillArcfan.cs" />
         <Compile Include="Skill\Spell\Attunement\SkillLithotether.cs" />
+        <Compile Include="Skill\Spell\Attunement\SkillShardpyre.cs" />
+        <Compile Include="Skill\Spell\SkillCoreCollapse.cs" />
+        <Compile Include="Skill\Spell\CrystalTorrent.cs" />
+        <Compile Include="Skill\Spell\SkillCrystallineSurge.cs" />
+        <Compile Include="Skill\Spell\SkillCrystalTorrent.cs" />
+        <Compile Include="Skill\Spell\SkillFractalDissipation.cs" />
+        <Compile Include="Skill\Spell\SkillHyperdetonation.cs" />
         <Compile Include="Skill\Spell\SkillShardImplosion.cs" />
         <Compile Include="Skill\Spell\SkillCrystalReservoir.cs" />
         <Compile Include="Skill\Spell\SkillCrystalSapping.cs" />
         <Compile Include="Skill\Spell\SkillRotaryShardshot.cs" />
+        <Compile Include="Skill\Spell\SkillSpellPair.cs" />
+        <Compile Include="Skill\Spell\SlowTime\SkillTemporalImbuement.cs" />
         <Compile Include="Skill\Spell\SpellCastCrystallic.cs" />
+        <Compile Include="Skill\Spell\SlowTime\SlowTimeSkillData.cs" />
         <Compile Include="StatusDataCrystallised.cs" />
         <Compile Include="Utils.cs" />
     </ItemGroup>

@@ -7,9 +7,16 @@ using System.Text;
 using ThunderRoad;
 using UnityEngine;
 using UnityEngine.VFX;
+using Random = UnityEngine.Random;
 
 public static class Extensions
 {
+    public static Dictionary<EffectInstance, List<ParticleSystem>> particleSystemCache = new();
+    
+    public static float RandomRange(this Vector2 value) => Random.Range(value.x, value.y);
+    
+    public static int RandomRangeInt(this Vector2 value) => Random.Range(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y));
+    
     public static void FillWithDefault<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TValue defaultValue = default)
     {
         dictionary.Clear();
@@ -98,19 +105,18 @@ public static class Extensions
     
     public static void StopAndStartCoroutine(this MonoBehaviour monoBehaviour, IEnumerator coroutine, ref Coroutine original)
     {
-        if (monoBehaviour == null) return;
-        if (original != null) monoBehaviour.StopCoroutine(original);
+        if (monoBehaviour == null)
+            return;
+        
+        if (original != null) 
+            monoBehaviour.StopCoroutine(original);
+        
         original = monoBehaviour.StartCoroutine(coroutine);
     }
     
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T> source) where T : class => source.Where(item => item != null)!;
 
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : struct => source.Where(item => item.HasValue).Select(item => item.Value);
-
-    public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
-    {
-        foreach (var item in source) action(item);
-    }
 
     public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int size)
     {
@@ -368,8 +374,14 @@ public static class Extensions
         ragdollPart = null;
         var closestDistance = maxDistance;
 
+        if (ragdoll == null || maxDistance == 0 || ragdoll.parts.IsNullOrEmpty()) 
+            return null;
+
         foreach (var part in ragdoll.parts)
         {
+            if (part == null) 
+                continue;
+            
             var distance = Vector3.Distance(part.transform.position, position);
             if (distance < closestDistance)
             {
@@ -580,31 +592,43 @@ public static class Extensions
         method?.Invoke(obj, null);
     }
 
-    public static ParticleSystem[] GetParticleSystems(this EffectInstance instance)
+    public static float GetIntensity(this EffectInstance effectInstance) => effectInstance.effects[0].effectIntensity;
+
+    public static List<ParticleSystem> GetParticleSystems(this EffectInstance instance)
     {
-        var particleSystems = new List<ParticleSystem>();
-        if (instance != null)
+        if (instance == null) 
+            return null;
+        
+        if (!particleSystemCache.TryGetValue(instance, out List<ParticleSystem> existing))
+        {
+            List<ParticleSystem> result = new List<ParticleSystem>();
+            
             if (instance.effects != null && instance.effects.Count > 0)
                 foreach (var effectParticle in instance.effects.OfType<EffectParticle>())
+                    
                     if (effectParticle?.rootParticleSystem?.gameObject != null)
-                        particleSystems.AddRange(effectParticle.rootParticleSystem.gameObject.GetComponentsInChildren<ParticleSystem>());
-        return particleSystems.ToArray();
+                        result.AddRange(effectParticle.rootParticleSystem.gameObject.GetComponentsInChildren<ParticleSystem>());
+            
+            particleSystemCache.Add(instance, result);
+            return result;
+        }
+
+        return existing;
     }
 
-    public static ParticleSystem[] GetParticleSystems(this List<EffectInstance> instances)
+    public static List<ParticleSystem> GetParticleSystems(this List<EffectInstance> instances)
     {
         var particleSystems = new List<ParticleSystem>();
         if (instances != null && instances.Count > 0)
             for (var index = 0; index < instances.Count; index++)
             {
                 var instance = instances[index];
+                
                 if (instance != null && instance.effects != null && instance.effects.Count > 0)
-                    foreach (var effectParticle in instance.effects.OfType<EffectParticle>())
-                        if (effectParticle?.rootParticleSystem?.gameObject != null)
-                            particleSystems.AddRange(effectParticle.rootParticleSystem.gameObject.GetComponentsInChildren<ParticleSystem>());
+                    particleSystems.AddRange(GetParticleSystems(instance));
             }
 
-        return particleSystems.ToArray();
+        return particleSystems;
     }
 
     public static ParticleSystem GetRootParticleSystem(this EffectInstance instance)
@@ -638,17 +662,27 @@ public static class Extensions
         if (effectVfx != null) return effectVfx.vfx;
         return null;
     }
-    
+
     public static void SetColor(this EffectInstance effectInstance, Color color)
     {
         var particleSystems = effectInstance.GetParticleSystems();
+
         foreach (var particleSystem in particleSystems)
         {
             var colorOverLifetime = particleSystem.colorOverLifetime;
             colorOverLifetime.enabled = true;
+
             var minMaxGradient = colorOverLifetime.color;
-            minMaxGradient.color = color;
-            colorOverLifetime.color = color;
+
+            Gradient existingGradient = minMaxGradient.gradient;
+            GradientColorKey[] newColorKeys = existingGradient.colorKeys;
+
+            for (int i = 0; i < newColorKeys.Length; i++)
+                newColorKeys[i].color = new Color(color.r, color.g, color.b, newColorKeys[i].color.a);
+
+            existingGradient.colorKeys = newColorKeys;
+
+            colorOverLifetime.color = minMaxGradient;
         }
     }
 
