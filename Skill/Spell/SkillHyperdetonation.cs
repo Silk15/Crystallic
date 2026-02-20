@@ -12,7 +12,7 @@ public class SkillHyperdetonation : SpellSkillData
     public float depthRequirementRatio = 0.9f;
     public float eventResetRatio = 0.2f;
     public bool requireUnpenetrateToReset = true;
-    public float minVelocity = 0.25f;
+    public float minVelocity = 2.5f;
 
     public string detonationEffectId = "Hyperdetonation";
     public EffectData detonationEffectData;
@@ -62,11 +62,16 @@ public class SkillHyperdetonation : SpellSkillData
     {
         Creature hitCreature = collision?.targetColliderGroup?.collisionHandler?.ragdollPart?.ragdoll?.creature;
         
-        if (!hitCreature || !hitCreature.HasStatus("Crystallised") || collision.impactVelocity.sqrMagnitude < minVelocity * minVelocity || hitCreature.isPlayer)
+        if (!hitCreature || !hitCreature.HasStatus("Crystallised") || velocity.sqrMagnitude < minVelocity * minVelocity || hitCreature.isPlayer)
             return;
         
+        Detonate(hitCreature, collision.contactPoint);
+    }
+
+    public void Detonate(Creature hitCreature, Vector3 forcePosition)
+    {
         hitCreature.Shred();
-        hitCreature.AddExplosionForce(60, collision.contactPoint, 2.5f, 0.5f, ForceMode.Impulse);
+        hitCreature.AddExplosionForce(60, forcePosition, 2.5f, 0.5f, ForceMode.Impulse);
 
         BrainModuleCrystal brainModuleCrystal = hitCreature.brain.instance.GetModule<BrainModuleCrystal>();
         Color color = brainModuleCrystal.lerper.targetColor;

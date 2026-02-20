@@ -37,6 +37,13 @@ public static class Extensions
         return false;
     }
     
+    public static T[] AsDataArray<T>(this IEnumerable<string> data) where T : CatalogData
+    {
+        List<T> result = new List<T>();
+        foreach (string item in data) result.Add(Catalog.GetData<T>(item));
+        return result.ToArray();
+    }
+    
     public static U FindOrAddList<T, U, V>(this Dictionary<T, U> dict, T key) where U : ICollection<V>, new()
     {
         if (dict == null)
@@ -83,13 +90,6 @@ public static class Extensions
             }
         }
         return closest;
-    }
-
-    public static T[] AsDataArray<T>(this IEnumerable<string> data) where T : CatalogData
-    {
-        List<T> result = new List<T>();
-        foreach (string item in data) result.Add(Catalog.GetData<T>(item));
-        return result.ToArray();
     }
 
     public static void RunOn<T>(this T obj, Action<T> action) where T : class => action?.Invoke(obj);

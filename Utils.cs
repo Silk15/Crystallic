@@ -10,6 +10,28 @@ using Random = UnityEngine.Random;
 
 public static class Utils
 {
+    public static Vector3 RandomPointOnCapsule(CapsuleCollider capsule)
+    {
+        Vector3 center = capsule.transform.TransformPoint(capsule.center);
+        float radius = capsule.radius;
+        float height = capsule.height;
+
+        if (Random.value < (height / (height + 2 * radius)))
+        {
+            float angle = Random.Range(0f, 2f * Mathf.PI);
+            float z = Random.Range(-height * 0.5f, height * 0.5f);
+            Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+            return center + capsule.transform.TransformDirection(offset) + capsule.transform.up * z;
+        }
+        else
+        {
+            Vector3 endOffset = Random.insideUnitSphere * radius;
+            if (Random.value < 0.5f) endOffset += capsule.transform.up * (height * 0.5f);
+            else endOffset -= capsule.transform.up * (height * 0.5f);
+            return center + capsule.transform.TransformDirection(endOffset);
+        }
+    }   
+    
     public static void FloatInPlace(Item item, bool disableCollision = true, Vector3 overridePosition = default, Quaternion overrideRotation = default)
     {
         if (disableCollision) 

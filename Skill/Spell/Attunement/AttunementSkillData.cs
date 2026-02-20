@@ -11,6 +11,8 @@ namespace Crystallic.Skill.Spell.Attunement;
 
 public abstract class AttunementSkillData : SpellSkillData
 {
+    public static string attunedSpellId = string.Empty;
+    
     public Color colorModifier;
     public string runeMeshAddress;
     public string spellId;
@@ -196,6 +198,7 @@ public abstract class AttunementSkillData : SpellSkillData
 
     protected virtual void OnAttunementStart(SpellCastCrystallic crystallic, SpellCastCharge other)
     {
+        attunedSpellId = other.id;
         onAttunementStart?.Invoke(crystallic, other);
         if (crystallic != null)
         {
@@ -239,6 +242,7 @@ public abstract class AttunementSkillData : SpellSkillData
 
     protected virtual void OnAttunementStop(SpellCastCrystallic crystallic, SpellCastCharge other)
     {
+        attunedSpellId = "";
         onAttunementEnd?.Invoke(crystallic, other);
         if (crystallic != null && injectInCast)
         {

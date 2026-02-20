@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
+using ThunderRoad.Skill.Spell;
 using UnityEngine;
 using QualityLevel = ThunderRoad.QualityLevel;
 
@@ -80,8 +81,7 @@ public static class CrystallisationPlatformController
     
     public static readonly int _SourceBlendRBG = Shader.PropertyToID("_SourceBlendRBG");
     public static readonly int _Culling = Shader.PropertyToID("_Culling");
-    
-    public static ModManager.ModData modData;
+
     public static Material loadedMaterial;
     public static int maxParticles = 25;
     public static int currentBlendMode = 10;
@@ -93,8 +93,6 @@ public static class CrystallisationPlatformController
             if (Common.IsAndroid)
                 material.DisableKeyword(_USESOFTALPHA_ON);
         });
-
-        modData = ModManager.loadedMods.FirstOrDefault(m => m.Name == "Crystallic");
     }
     
     public static void LoadMaterial(Action<Material> onLoaded)

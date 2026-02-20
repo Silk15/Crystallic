@@ -10,6 +10,8 @@ public class Crystallised : Status
 {
     public BrainModuleCrystal brainModuleCrystal;
     
+    public override bool ReapplyOnValueChange => true;
+    
     public override void FirstApply()
     {
         base.Apply();
@@ -17,17 +19,23 @@ public class Crystallised : Status
         {
             brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
             brainModuleCrystal.StartCrystallise();
+            UpdateColor();
         }
     }
 
     public override void Apply()
     {
         base.Apply();
-        if (value is CrystallisedParams crystallisedParams) brainModuleCrystal.SetColor(crystallisedParams.targetColor, crystallisedParams.spellId, crystallisedParams.time);
+        UpdateColor();
     }
     
-    public override bool ReapplyOnValueChange => true;
-
+    public override void FullRemove()
+    {
+        base.Remove();
+        if (entity is Creature)
+            brainModuleCrystal.StopCrystallise();
+    }
+    
     protected override object GetValue()
     {
         CrystallisedParams identity = CrystallisedParams.Identity;
@@ -45,9 +53,9 @@ public class Crystallised : Status
         return identity;
     }
     
-    public override void FullRemove()
-    {
-        base.Remove();
-        if (entity is Creature) brainModuleCrystal.StopCrystallise();
+    public void UpdateColor()
+    { 
+        if (value is CrystallisedParams crystallisedParams) 
+            brainModuleCrystal.SetColor(crystallisedParams.targetColor, crystallisedParams.spellId, crystallisedParams.time);
     }
 }

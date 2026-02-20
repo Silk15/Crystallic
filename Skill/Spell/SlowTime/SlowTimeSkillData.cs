@@ -1,9 +1,10 @@
 ﻿using ThunderRoad;
+using ThunderRoad.Skill;
 using ThunderRoad.Skill.SpellPower;
 
 namespace Crystallic.Skill.Spell.SlowTime;
 
-public class SlowTimeSkillData : SkillData
+public class SlowTimeSkillData : SpellSkillData
 {
     public static bool timeSlowed;
 

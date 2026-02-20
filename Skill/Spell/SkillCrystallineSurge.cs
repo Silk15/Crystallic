@@ -28,6 +28,9 @@ public class SkillCrystallineSurge : SpellSkillData
     public EffectData effectData;
     public string effectId = "CrystallineSurge";
 
+    //TODO: Remove this monstrosity
+    public static Dictionary<SkillCrystallineSurge, Creature> creaturesBySkill = new();
+
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -49,11 +52,14 @@ public class SkillCrystallineSurge : SpellSkillData
     public override void OnSkillUnloaded(SkillData skillData, Creature creature)
     {
         base.OnSkillUnloaded(skillData, creature);
-        if (!creature.airHelper) return;
+        
+        if (!creature.airHelper)
+            return;
+        
         creature.airHelper.OnGroundEvent -= OnGround;
     }
 
-    private void OnGround(Creature creature) => creature.SetVariable("CanDash", true);
+    private void OnGround(Creature creature) => Player.currentCreature.SetVariable("CanDash", true);
 
     public override void OnImbueLoad(SpellData spell, ThunderRoad.Imbue imbue)
     {

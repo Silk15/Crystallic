@@ -1,16 +1,19 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Crystallic.Skill.Spell.Attunement;
 using ThunderRoad;
 using ThunderRoad.DebugViz;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = System.Object;
 
 namespace Crystallic;
 
 public class Dye : ThunderScript
 {
-    
-    
+    public static Color defaultColor = Color.white;
     public static bool rainbowModeWasActivatedThisSession = false;
     public static bool rainbowMode = false;
 
@@ -18,32 +21,72 @@ public class Dye : ThunderScript
     public static void SetRainbowMode(bool active)
     {
         rainbowMode = active;
-        if (active) rainbowModeWasActivatedThisSession = true;
+        if (active) 
+            rainbowModeWasActivatedThisSession = true;
     }
     
     public static List<DyeData> dyeData = new();
+    public static Action onDyeDataLoaded;
 
     public override void ScriptEnable()
     {
         base.ScriptEnable();
         EventManager.onLevelLoad += OnLevelLoad;
+        EventManager.onPossess += OnPossess;
     }
 
     public override void ScriptDisable()
     {
         base.ScriptDisable();
         EventManager.onLevelLoad -= OnLevelLoad;
+        EventManager.onPossess -= OnPossess;
+    }
+    
+    private void OnPossess(Creature creature, EventTime eventTime)
+    {
+        if (eventTime == EventTime.OnStart)
+            return;
+        SaveData.LoadAsync(() =>
+        {
+            foreach (SaveData.ModRequirement modRequirement in SaveData.instance.savedModRequirements)
+            {
+                if (!modRequirement.messageSeen)
+                {
+                    bool modFound = false;
+                    bool requirementFound = false;
+                    foreach (ModManager.ModData modData in ModManager.loadedMods)
+                    {
+                        if (modData.Name == modRequirement.modName) 
+                            modFound = true;
+                        
+                        else if (modData.Name == modRequirement.requirementName) 
+                            requirementFound = true;
+                    }
+
+                    if (modFound && !requirementFound)
+                    {
+                        Debug.Log($"[Crystallic] Showing mod requirement message for mod: {modRequirement.modName}");
+                        DisplayMessage.instance.ShowMessage(new DisplayMessage.MessageData(text: modRequirement.message, 1, isSkippable: false, dismissTime: 10f, dismissAutomatically: true, anchorType: MessageAnchorType.Head));
+                        modRequirement.messageSeen = true;
+                        SaveData.SaveAsync();
+                    }
+                    break;
+                }
+            }
+        });
     }
 
     private void OnLevelLoad(LevelData levelData, LevelData.Mode mode, EventTime eventTime) => Utils.Validate(() => eventTime == EventTime.OnEnd, () => Load());
 
     public static void Load()
     {
+        SaveData.SaveAsync();
         dyeData.Clear();
         dyeData = Catalog.GetDataList<DyeData>();
+        onDyeDataLoaded?.Invoke();
         Debug.Log("[Crystallic] Loaded Dye Data:\n - " + string.Join("\n - ", dyeData.Select(d => d.id)));
     }
-    
+
     public static Color GetEvaluatedColor(string originSpellId, string hitSpellId)
     {
         var result = TryGetColor(originSpellId, hitSpellId);
@@ -54,7 +97,8 @@ public class Dye : ThunderScript
         if (result.found)
             return result.color;
 
-        return new Color(1, 1, 1, 1);
+        Debug.LogWarning($"[Crystallic] Unable to find interpolated mix between [{originSpellId}] and [{hitSpellId}], default will be used!");
+        return defaultColor;
     }
 
     private static (bool found, Color color) TryGetColor(string a, string b)

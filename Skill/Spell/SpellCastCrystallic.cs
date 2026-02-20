@@ -25,8 +25,10 @@ public class SpellCastCrystallic : SpellCastCharge
     public static int defaultShardCount = 3;
     
     public AnimationCurve pulseCurve = new(new Keyframe(0.0f, 10f), new Keyframe(0.05f, 25f), new Keyframe(0.1f, 10f));
+    public SkillHyperdetonation skillHyperdetonation;
     public List<Shard> lastShards = new();
     public EffectInstance chargeEffect;
+    public EffectData musketCollisionEffectData;
     public EffectData imbueCollisionEffectData;
     public EffectData shardEffectData;
     public EffectData pulseEffectData;
@@ -85,7 +87,7 @@ public class SpellCastCrystallic : SpellCastCharge
         }
     }
 
-    public SpellCastCrystallic Clone() => MemberwiseClone() as SpellCastCrystallic;
+    public new SpellCastCrystallic Clone() => MemberwiseClone() as SpellCastCrystallic;
     
     public void AddShardCountModifier(object handler, int count) => AdditionalShards[handler] = count;
     public void RemoveShardCountModifier(object handler)
@@ -104,6 +106,8 @@ public class SpellCastCrystallic : SpellCastCharge
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
+        musketCollisionEffectData = Catalog.GetData<EffectData>("HitMusketCrystallic");
+        skillHyperdetonation = Catalog.GetData<SkillHyperdetonation>("Hyperdetonation");
         staffSlamEffectData = Catalog.GetData<EffectData>(staffSlamEffectId);
         pulseEffectData = Catalog.GetData<EffectData>(pulseEffectId);
         shardEffectData = Catalog.GetData<EffectData>(shardEffectId);
@@ -118,6 +122,22 @@ public class SpellCastCrystallic : SpellCastCharge
         if (!spellCaster.ragdollHand.ragdoll.creature.isPlayer) return;
         spellCaster.ragdollHand.playerHand.controlHand.OnButtonPressEvent += OnButtonPressWhileCasting;
         spellCaster.mana.OnSpellUnloadEvent += OnSpellUnload;
+    }
+
+    public override void Unload()
+    {
+        base.Unload();
+        if (imbue == null && imbueEffect != null)
+            foreach (var particleSystem in imbueEffect.GetParticleSystems())
+            {
+                var particles = new ParticleSystem.Particle[particleSystem.particleCount];
+                int count = particleSystem.GetParticles(particles);
+
+                for (int i = 0; i < count; i++)
+                    particles[i].remainingLifetime = 0.5f;
+
+                particleSystem.SetParticles(particles, count);
+            }
     }
 
     public override void OnLateSkillsLoaded(SkillData skillData, Creature creature)
@@ -299,6 +319,34 @@ public class SpellCastCrystallic : SpellCastCharge
                 component.DelayedDespawn(null, lifetime);
             }
         });
+    }
+
+    public override void OnMusketShoot(bool playEffect = true)
+    {
+        if (Physics.Raycast(imbue.colliderGroup.imbueShoot.position, imbue.colliderGroup.imbueShoot.forward, out var hit, 4f, GetMask(), QueryTriggerInteraction.Ignore))
+            if (hit.collider.TryGetComponentInParent(out Creature creature))
+            {
+                creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
+                creature.RunAfter(() => skillHyperdetonation.Detonate(creature, hit.point), 0.25f);
+            }
+        musketCollisionEffectData.Spawn(hit.point, Quaternion.LookRotation(hit.normal)).Play();
+        base.OnMusketShoot(playEffect);
+    }
+
+    public int GetMask()
+    {
+        int mask = 0;
+        mask |= 1 << GameManager.GetLayer(LayerName.Default);
+        mask |= 1 << GameManager.GetLayer(LayerName.Water);
+        mask |= 1 << GameManager.GetLayer(LayerName.PhysicObject);
+        mask |= 1 << GameManager.GetLayer(LayerName.DroppedItem);
+        mask |= 1 << GameManager.GetLayer(LayerName.PlayerLocomotionObject);
+        mask |= 1 << GameManager.GetLayer(LayerName.Ragdoll);
+        mask |= 1 << GameManager.GetLayer(LayerName.NoLocomotion);
+        mask |= 1 << GameManager.GetLayer(LayerName.PlayerLocomotion);
+        mask |= 1 << GameManager.GetLayer(LayerName.BodyLocomotion);
+        mask |= 1 << GameManager.GetLayer(LayerName.NPC);
+        return mask;
     }
 
     public override bool OnCrystalSlam(CollisionInstance collisionInstance)

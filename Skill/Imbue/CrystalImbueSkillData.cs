@@ -1,6 +1,7 @@
 using ThunderRoad.Skill;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ThunderRoad;
 using UnityEngine;
 
@@ -8,7 +9,9 @@ namespace Crystallic.Skill.Imbue;
 
 public class CrystalImbueSkillData : SpellSkillData
 {
-    public Dictionary<Item, string> previousImbues = new();
+    public static List<ThunderRoad.Imbue> imbuesToRevert = new();
+    public static Dictionary<Item, string> previousImbues = new();
+   
     public EffectData imbueCollisionEffectData;
     public EffectData imbueEffectData;
     public Color colorModifier;
@@ -18,6 +21,13 @@ public class CrystalImbueSkillData : SpellSkillData
     public string typeAddress;
     public Type type;
     public bool crystalliseOnHit = true;
+    
+    public static void SaveImbues()
+    {
+        foreach (ThunderRoad.Imbue imbue in ThunderRoad.Imbue.all) 
+            if (imbue.GetComponents<ImbueBehaviour>().Any(i => i.enabled)) 
+                imbuesToRevert.Add(imbue);
+    }
     
     public override void OnCatalogRefresh()
     {
@@ -35,17 +45,34 @@ public class CrystalImbueSkillData : SpellSkillData
     {
         base.OnImbueLoad(spell, imbue);
         var item = imbue.colliderGroup.collisionHandler.item;
+
+        if (imbuesToRevert.Contains(imbue))
+        {
+            imbuesToRevert.Remove(imbue);
+            LoadImbue(imbue);
+            return;
+        }
         
-        if (spell.id != spellId || previousImbues.IsNullOrEmpty() || !previousImbues.ContainsKey(item) || (previousImbues.TryGetValue(item, out string id) && id != "Crystallic"))
+        if (spell.id != spellId || previousImbues.IsNullOrEmpty() || !previousImbues.ContainsKey(item) || (previousImbues.TryGetValue(item, out var id) && id != "Crystallic"))
             return;
         
-        var behaviour = (ImbueBehaviour)imbue.gameObject.AddComponent(type);
-        behaviour.Load(this, imbue);
+        LoadImbue(imbue);
     }
 
     public override void OnImbueUnload(SpellData spell, ThunderRoad.Imbue imbue)
     {
         base.OnImbueUnload(spell, imbue);
+        UnloadImbue(imbue);
+    }
+
+    public void LoadImbue(ThunderRoad.Imbue imbue)
+    {
+        var behaviour = (ImbueBehaviour)imbue.gameObject.AddComponent(type);
+        behaviour.Load(this, imbue);
+    }
+
+    public void UnloadImbue(ThunderRoad.Imbue imbue)
+    {
         var components = imbue.gameObject.GetComponents<ImbueBehaviour>();
         if (!components.IsNullOrEmpty()) foreach (var imbueBehavior in components) imbueBehavior?.Unload(imbue);
         previousImbues[imbue.colliderGroup.collisionHandler.item] = imbue.spellCastBase.id;

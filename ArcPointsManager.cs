@@ -8,7 +8,7 @@ using UnityEngine.Serialization;
 namespace Crystallic
 {
     /// <summary>
-    /// Written by Phantom, gifted to me, to be cherished and misused for evil deeds such as violent shard stabbings on the streets of Byeth
+    /// Written by Phantom and gifted to me to be cherished and misused for evil deeds such as violent shard stabbings on the streets of Byeth
     /// </summary>
     public class ArcPointsManager : MonoBehaviour
     {
@@ -24,7 +24,6 @@ namespace Crystallic
         public bool spin = false;
         public float currentAngle;
         public float rootSpinSpeed;
-
         
         [Header("Orientation")]
         public Vector3 forwardReference = Vector3.forward;
