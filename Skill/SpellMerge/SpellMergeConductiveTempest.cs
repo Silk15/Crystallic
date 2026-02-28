@@ -1,25 +1,23 @@
-﻿using ThunderRoad;
+﻿using System;
+using ThunderRoad;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.SpellMerge;
 
 public class SpellMergeConductiveTempest : SpellMergeData
 {
-    public string conductiveTempestEffectId;
+    [NonSerialized]
     public EffectData conductiveTempestEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string conductiveTempestEffectId;
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
         conductiveTempestEffectData = Catalog.GetData<EffectData>(conductiveTempestEffectId);
     }
-
-    public override void Merge(bool active)
-    {
-        base.Merge(active);
-        if (!active)
-        {
-            conductiveTempestEffectData.Spawn(Player.currentCreature.transform.position + Vector3.up * 3f, Quaternion.identity).Play();
-        }
-    }
+    #endif
 }

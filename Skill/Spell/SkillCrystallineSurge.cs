@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using Crystallic.Filters;
 using Crystallic.Skill.Imbue;
 using ThunderRoad;
 using ThunderRoad.Skill;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillCrystallineSurge : SpellSkillData
 {
-    public Dictionary<Item, SkillSpellPair> pairedItems = new();
-    public Dictionary<Side, float> lastDashTimes = new();
-    public List<SkillSpellPair> skillSpellPairs = new();
-
+    #if !SDK
     [ModOption("Dash Speed", "Controls how far the player is accelerated when you dash."), ModOptionFloatValues(1f, 100f, 1f), ModOptionSlider, ModOptionCategory("Crystalline Surge", 20)]
     public static float dashSpeed = 10f;
 
@@ -24,13 +23,33 @@ public class SkillCrystallineSurge : SpellSkillData
 
     [ModOption("Dash Button", "Controls the button required to dash.", defaultValueIndex = 0), ModOptionCategory("Crystalline Surge", 20)]
     public static Interactable.Action action = Interactable.Action.UseStart;
-
+    
+    [ModOption("Allow Dash Imbue Drain", "Controls whether dashing drains weapon imbue."), ModOptionCategory("Crystalline Surge", 20)]
+    public static bool allowDashImbueDrain = true;
+    
+    [ModOption("Allow Handle Slide", "Controls whether you can slide your hand across a weapon by holding trigger"), ModOptionCategory("Crystalline Surge", 20)]
+    public static bool allowHandleSlide = true;
+    #endif
+    
+    public StringFilter itemIdFilter;
+    public StringFilter authorFilter;
+    public ItemTypeFilter itemTypeFilter;
+    
+    [NonSerialized]
     public EffectData effectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string effectId = "CrystallineSurge";
+    
+    public List<SkillSpellPair> skillSpellPairs = new();
+    
+    [NonSerialized]
+    public Dictionary<Item, SkillSpellPair> pairedItems = new();
+    
+    [NonSerialized]
+    public Dictionary<Side, float> lastDashTimes = new();
 
-    //TODO: Remove this monstrosity
-    public static Dictionary<SkillCrystallineSurge, Creature> creaturesBySkill = new();
-
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -112,14 +131,16 @@ public class SkillCrystallineSurge : SpellSkillData
         if (action != SkillCrystallineSurge.action || handle.item.flyDirRef == null)
             return;
 
+        handle.slideBehavior = allowHandleSlide ? Handle.SlideBehavior.CanSlide : Handle.SlideBehavior.DisallowSlide;
         TryDash(ragdollHand.side, handle.item, handle.item.flyDirRef.forward * dashSpeed);
     }
 
     public void TryDash(Side side, Item item, Vector3 direction)
     {
         bool canDash = !lastDashTimes.ContainsKey(side) || Time.time - lastDashTimes[side] >= dashCooldown;
+        bool allFiltersAllowed = itemIdFilter.Allows(item.data.id) && authorFilter.Allows(item.data.author) && itemTypeFilter.Allows(item.data.type);
 
-        if (canDash && item?.mainHandler?.creature is Creature creature)
+        if (canDash && allFiltersAllowed && item?.mainHandler?.creature is Creature creature)
         {
             if (creature.airHelper.inAir)
                 if (creature.TryGetVariable("CanDash", out bool alreadyDashedInAir) && !alreadyDashedInAir)
@@ -127,7 +148,7 @@ public class SkillCrystallineSurge : SpellSkillData
 
             if (canDash)
             {
-                if (item.imbues[0] is ThunderRoad.Imbue imbue && !ThunderRoad.Imbue.infiniteImbue)
+                if (item.imbues[0] is ThunderRoad.Imbue imbue && !ThunderRoad.Imbue.infiniteImbue && allowDashImbueDrain)
                     imbue.Transfer(imbue.spellCastBase, -dashImbueDrain);
 
                 lastDashTimes[side] = Time.time;
@@ -157,4 +178,5 @@ public class SkillCrystallineSurge : SpellSkillData
 
         effectInstance.Play();
     }
+    #endif
 }

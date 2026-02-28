@@ -1,3 +1,4 @@
+#if !SDK
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using ThunderRoad;
 using UnityEngine;
-using UnityEngine.XR;
 using Random = UnityEngine.Random;
 
 public static class Utils
@@ -408,3 +408,4 @@ public static class Utils
         });
     }
 }
+#endif

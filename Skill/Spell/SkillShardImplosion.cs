@@ -1,15 +1,18 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
 using ThunderRoad.Skill;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillShardImplosion : SpellSkillData
 {
+    #if !SDK
     [ModOption("Enemy Damage", "Controls the amount of damage dealt to enemies"), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Shard Implosion", 10)]
     public static float enemyDamage = 20f;
 
@@ -21,14 +24,24 @@ public class SkillShardImplosion : SpellSkillData
 
     [ModOption("Implosion Break Force", "Controls the amount of force applied to breakable items, increases the explosion force."), ModOptionFloatValues(0f, 1000f, 1f), ModOptionSlider, ModOptionCategory("Shard Implosion", 10)]
     public static float breakForce = 50f;
-
-    public Dictionary<Side, float> lastImplosionTimes = new();
-    public EffectData implosionEffectData;
-    public string implosionEffectId;
+    #endif
+    
     public ForceMode forceMode = ForceMode.Impulse;
     
+    [NonSerialized]
+    public EffectData implosionEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string implosionEffectId;
+    
+    [NonSerialized]
+    public Dictionary<Side, float> lastImplosionTimes = new();
+    
+    #if !SDK
     public event ShardImplosion onImplode;
     public event ShardImplosion onExplode;
+    
+    public delegate void ShardImplosion(SpellCastCrystallic spellCastCrystallic, Vector3 position, EffectInstance effectInstance, (ThunderEntity, Vector3)[] hitEntities);
 
     public override void OnCatalogRefresh()
     {
@@ -157,6 +170,5 @@ public class SkillShardImplosion : SpellSkillData
             yield return null;
         shard.DelayedDespawn(null, 0.01f);
     }
-
-    public delegate void ShardImplosion(SpellCastCrystallic spellCastCrystallic, Vector3 position, EffectInstance effectInstance, (ThunderEntity, Vector3)[] hitEntities);
+    #endif
 }

@@ -1,9 +1,12 @@
+#if !SDK
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using Crystallic.Skill.Spell;
+using Newtonsoft.Json;
 using ThunderRoad;
+using TriInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -13,30 +16,48 @@ public class Shard : ItemMagicProjectile
 {
     public static List<Shard> AllActive { get; } = new();
     
-    public SpellCastCrystallic linkedSpell;
-    public Coroutine despawnCoroutine;
-    public Func<Creature, bool> crystalliseFunc;
-    public Action<Shard> onLoad;
-    public float lastRetargetTime = Time.time;
+    public float nextRandomInvokeTime;
     public float homingRetargetDelay = 0.5f; 
-    public Vector3 targetDirection;
+    public float lastRetargetTime = Time.time;
     public bool hasDespawned;
     public bool canImplode;
     public bool hasCollided;
+    
     public Vector2 minMaxRandomInvokeDelay = new(0.3f, 0.175f);
-    public float nextRandomInvokeTime;
+    public Vector3 targetDirection;
 
+    [NonSerialized]
     public EffectData shardHitEffectData;
-    public string shardHitEffectId = "HitShard";
+    
+    [NonSerialized]
+    public SpellCastCrystallic linkedSpell;
+    
+    [NonSerialized]
+    public Coroutine despawnCoroutine;
+    
+    [NonSerialized]
+    public Func<Creature, bool> crystalliseFunc;
+    
+    [NonSerialized]
+    public Action<Shard> onLoad;
 
+    public string shardHitEffectId = "HitShard";
+    
     public event RandomInvokeDelegate onRandomActionInvoked;
     public event CollisionDelegate onCollision;
     public event DespawnDelegate onDespawn;
     public event FireDelegate onFire;
 
+    [JsonIgnore]
     public List<Action<Shard>> RandomInvokeActions { get; protected set; } = new();
+    
+    [JsonIgnore]
     public List<EffectInstance> LinkedEffects { get; protected set;  } = new();
+    
+    [JsonIgnore]
     public float ElapsedLifetime { get; set; }
+    
+    [JsonIgnore]
     public float Lifetime { get; set; }
 
     public void Load(SpellCastCrystallic spellCastCrystallic)
@@ -197,9 +218,10 @@ public class Shard : ItemMagicProjectile
         
         public void SetEffect(EffectData effectData) => this.effectData = effectData;
     }
-    
+
     public delegate void CollisionDelegate(Shard shard, CollisionInstance collisionInstance, ShardArgs customHitEffect);
     public delegate void RandomInvokeDelegate(Shard shard, Action<Shard> randomInvoke);
     public delegate void DespawnDelegate(Shard shard, EventTime eventTime);
     public delegate void FireDelegate(Shard shard);
 }
+#endif

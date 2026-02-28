@@ -1,20 +1,15 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Crystallic.Skill.Spell;
 using ThunderRoad;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Golem.Ability.Throw;
 
 public class GolemCrystalCore : GolemThrow
 {
-    public List<ParticleCollisionEvent> collisionEvents = new();
-    public Dictionary<Creature, float> lastPushTimes = new();
-    public ItemMagicProjectile itemMagicProjectile;
-    public EffectInstance coreEffectInstance;
-    public EffectData coreFireEffectData;
-    public EffectData fireHitEffectData;
-    public EffectData coreEffectData;
     public string coreFireEffectId;
     public string fireHitEffectId;
     public string coreEffectId;
@@ -23,6 +18,31 @@ public class GolemCrystalCore : GolemThrow
     public float coreFireDelay = 2f;
     public float dragDelay;
     public float drag;
+
+    [NonSerialized]
+    public List<ParticleCollisionEvent> collisionEvents = new();
+
+    [NonSerialized]
+    public Dictionary<Creature, float> lastPushTimes = new();
+
+    #if !SDK
+    [NonSerialized]
+    public ItemMagicProjectile itemMagicProjectile;
+
+    [NonSerialized]
+    public EffectInstance coreEffectInstance;
+    #endif
+
+    [NonSerialized]
+    public EffectData coreFireEffectData;
+
+    [NonSerialized]
+    public EffectData fireHitEffectData;
+
+    [NonSerialized]
+    public EffectData coreEffectData;
+
+    #if !SDK
 
     public override void Begin(GolemController golem)
     {
@@ -144,4 +164,5 @@ public class GolemCrystalCore : GolemThrow
         itemMagicProjectile.item.DisallowDespawn = false;
         itemMagicProjectile.effectInstance.End();
     }
+    #endif
 }

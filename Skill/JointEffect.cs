@@ -9,6 +9,7 @@ namespace Crystallic.Skill;
 [Serializable]
 public class JointEffect
 {
+    #if !SDK
     public List<EffectInstance> effectInstances;
     public ConfigurableJoint configurableJoint;
 
@@ -17,4 +18,5 @@ public class JointEffect
         effectInstances = new List<EffectInstance>();
         this.configurableJoint = configurableJoint;
     }
+    #endif
 }

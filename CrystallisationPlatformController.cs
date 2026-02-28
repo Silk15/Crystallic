@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !SDK
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
@@ -12,9 +13,6 @@ public static class CrystallisationPlatformController
 {
     [ModOption("Max Crystallised Entities", "Controls the maximum amount of crystallised NPCs excluding the Golem.", order = 1), ModOptionSlider, ModOptionCategory("Performance", -2), ModOptionIntValues(1, 50, 1)]
     public static int maxCrystallisedEntities = 10;
-
-    [ModOption("Crystallisation Culling", "Controls the way crystallisation particles are culled. \n\n- Off = Both sides rendered \n- Front = Front culled, back visible \n- Back = Back culled, front visible (Recommended)", nameof(cullingValues), order = 2, defaultValueIndex = 2), ModOptionButton, ModOptionCategory("Performance", -2)]
-    public static void SetCullMode(int value) => LoadMaterial(material => material.SetFloat(_Culling, value));
 
     [ModOption("Blend Mode", "Controls whether the crystallisation Vfx are visually transparent. This does not outright disable transparency meaning it is still rendered as a transparent object. This provides a small performance gain on its own. \n\n- Zero = Not transparent, incompatible with soft particles\n\n- Src Alpha Saturate = Not transparent, incompatible with soft particles\n\n- One Minus Src Alpha = Default. Both transparent and compatible with soft particles but slightly more expensive to render", nameof(blendModeValues), order = 3, defaultValueIndex = 2), ModOptionButton, ModOptionCategory("Performance", -2)]
     public static void SetBlendMode(int value) => LoadMaterial(material =>
@@ -59,13 +57,6 @@ public static class CrystallisationPlatformController
             }
         });
     }
-
-    public static ModOptionParameter[] cullingValues = new ModOptionParameter[3]
-    {
-        new ModOptionInt("Off", 0),
-        new ModOptionInt("Front", 1),
-        new ModOptionInt("Back", 2)
-    };
     
     public static ModOptionParameter[] blendModeValues = new ModOptionParameter[3]
     {
@@ -80,7 +71,6 @@ public static class CrystallisationPlatformController
     public static readonly string _USESOFTALPHA_ON = "_USESOFTALPHA_ON";
     
     public static readonly int _SourceBlendRBG = Shader.PropertyToID("_SourceBlendRBG");
-    public static readonly int _Culling = Shader.PropertyToID("_Culling");
 
     public static Material loadedMaterial;
     public static int maxParticles = 25;
@@ -106,3 +96,4 @@ public static class CrystallisationPlatformController
         Catalog.LoadAssetAsync(MaterialAddress, onLoaded, "Crystallisation Material");
     }
 }
+#endif

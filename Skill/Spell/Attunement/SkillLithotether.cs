@@ -1,16 +1,21 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Crystallic.Skill.Spell.Attunement;
 using ThunderRoad;
 using ThunderRoad.Skill;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.Spell.Attunement;
 
 public class SkillLithotether : AttunementSkillData
 {
+    #if !SDK
     [ModOption("Lithotether Spring", "The strength of each lithotether, this value is like a rope holding two things together, the higher this value - The tighter the bond.", order = 0), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
     public static float spring = 100f;
 
@@ -25,26 +30,62 @@ public class SkillLithotether : AttunementSkillData
 
     [ModOption("Gravity Well Lifetime", "Controls the time the gravity-attuned implosion lasts.", order = 4), ModOptionCategory("Lithotether", 3), ModOptionSlider, ModOptionFloatValues(1f, 100, 1f)]
     public static float gravityWellLifetime = 2f;
+    #endif
 
     public Vector2 minMaxTetherLifetime = new(2, 6);
-    public StatusData statusData;
-    public EffectData snapEffectData;
-    public EffectData tetherEffectData;
-    public EffectData lithotetherEffectData;
-    public EffectData impactPulseEffectData;
-    public EffectData gravityWellEffectData;
-    public string snapEffectId = "GravitySnap";
-    public string tetherEffectId = "GravityTether";
-    public string impactPulseEffectId = "ImpactPulse";
-    public string lithotetherEffectId = "Lithotether";
-    public string gravityWellEffectId = "GravityWell";
-    public SpellCastGravity spellCastGravity;
-    public SkillShardImplosion skillShardImplosion;
-    public Dictionary<Rigidbody, JointEffect> jointedParts = new();
     
-    protected EffectData shardHitEffectData;
+    [NonSerialized]
+    public StatusData statusData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string statusId = "Floating";
+    
+    [NonSerialized]
+    public EffectData snapEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string snapEffectId = "GravitySnap";
+    
+    [NonSerialized]
+    public EffectData tetherEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string tetherEffectId = "GravityTether";
+    
+    [NonSerialized]
+    public EffectData lithotetherEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string lithotetherEffectId = "Lithotether";
+    
+    [NonSerialized]
+    public EffectData impactPulseEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))] 
+    public string impactPulseEffectId = "ImpactPulse";
+    
+    [NonSerialized]
+    public EffectData gravityWellEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string gravityWellEffectId = "GravityWell";
+    
+    [NonSerialized]
+    public EffectData shardHitEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string shardHitEffectId = "HitComboGravity";
+    
+    [NonSerialized]
+    public SpellCastGravity spellCastGravity;
+    
+    [NonSerialized]
+    public SkillShardImplosion skillShardImplosion;
+    
+    [NonSerialized]
+    public Dictionary<Rigidbody, JointEffect> jointedParts = new();
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -54,7 +95,7 @@ public class SkillLithotether : AttunementSkillData
         lithotetherEffectData = Catalog.GetData<EffectData>(lithotetherEffectId);
         tetherEffectData = Catalog.GetData<EffectData>(tetherEffectId);
         snapEffectData = Catalog.GetData<EffectData>(snapEffectId);
-        statusData = Catalog.GetData<StatusData>("Floating");
+        statusData = Catalog.GetData<StatusData>(statusId);
     }
 
     public override void OnLateSkillsLoaded(SkillData skillData, Creature creature)
@@ -259,4 +300,5 @@ public class SkillLithotether : AttunementSkillData
         impactPulseEffectData.Spawn(position, Quaternion.identity).Play();
         snapEffectData.Spawn(position, Quaternion.identity).Play();
     }
+    #endif
 }

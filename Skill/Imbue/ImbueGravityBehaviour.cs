@@ -2,15 +2,16 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Crystallic.Skill;
 using ThunderRoad;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Imbue;
 
 public class ImbueGravityBehaviour : ImbueBehaviour
 {
+    #if !SDK
     [ModOption("Lithohammer Spring", "The spring applied to the tether connecting two physicBodies, this is the value that decides how tightly two limbs are bound.", order = 0), ModOptionCategory("Lithohammer", 6), ModOptionSlider, ModOptionFloatValues(1, 10000, 0.5f)]
     public static float spring = 550f;
 
@@ -25,14 +26,30 @@ public class ImbueGravityBehaviour : ImbueBehaviour
     
     [ModOption("Lithohammer Lifetime", "The lifetime of each tether."), ModOptionCategory("Lithohammer", 5), ModOptionSlider, ModOptionFloatValues(0.1f, 100, 0.1f)]
     public static float lifetime = 3f;
-    public Dictionary<Creature, JointEffect> jointedBodies = new();
+    #endif
+    
+    [NonSerialized]
     public EffectData tetherEffectData;
+    
+    [Dropdown(nameof(GetAllEffectID))]
     public string tetherEffectId = "GravityTether";
+    
+    [NonSerialized]
     public EffectData snapEffectData;
+    
+    [Dropdown(nameof(GetAllEffectID))]
     public string snapEffectId = "GravitySnap";
+    
+    [NonSerialized]
+    public Dictionary<Creature, JointEffect> jointedBodies = new();
+    
+    [NonSerialized]
     public SpellCastGravity spellCastGravity;
+    
+    [NonSerialized]
     public StatusData statusData;
 
+    #if !SDK
     public override void Load(CrystalImbueSkillData handler, ThunderRoad.Imbue imbue)
     {
         base.Load(handler, imbue);
@@ -142,4 +159,5 @@ public class ImbueGravityBehaviour : ImbueBehaviour
             jointedBodies.Remove(creature);
         }
     }
+    #endif
 }

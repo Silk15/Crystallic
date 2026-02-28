@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using ThunderRoad;
 using ThunderRoad.Pools;
@@ -10,21 +11,47 @@ namespace Crystallic.Skill.Spell;
 
 public class CrystalTorrent : ThunderBehaviour
 { 
-    private List<ParticleCollisionEvent> collisionEvents = new();
-    public SkillCrystalTorrent skillCrystalTorrent;
-    public EffectInstance torrentEffect;
-    public Transform torrentTransform;
-    public Transform overrideTarget;
-    public Coroutine chargeCoroutine;
-    public ThunderRoad.Imbue imbue;
-    public ThunderEntity caster;
-    public Item item;
-    public bool active;
-    public float lastHapticTime;
-    public float nextHapticDelay;
     public float hapticDelayMultiplier;
     public float buildupTime = 5f;
+    
+    [NonSerialized]
+    public float lastHapticTime;
+    
+    [NonSerialized]
+    public float nextHapticDelay;
+    
+    [NonSerialized]
+    public bool active;
+    
+    [NonSerialized]
+    public SkillCrystalTorrent skillCrystalTorrent;
+    
+    #if !SDK
+    [NonSerialized]
+    public EffectInstance torrentEffect;
+    #endif
+    
+    [NonSerialized]
+    public Transform torrentTransform;
+    
+    [NonSerialized]
+    public Transform overrideTarget;
+    
+    [NonSerialized]
+    public Coroutine chargeCoroutine;
+    
+    [NonSerialized]
+    public ThunderRoad.Imbue imbue;
+    
+    [NonSerialized]
+    public ThunderEntity caster;
+    
+    [NonSerialized]
+    public Item item;
+    
+    private List<ParticleCollisionEvent> collisionEvents = new();
 
+    #if !SDK
     public override ManagedLoops EnabledManagedLoops => ManagedLoops.FixedUpdate;
 
     public void Fire(SkillCrystalTorrent skillCrystalTorrent, ThunderEntity caster, ThunderRoad.Imbue imbue, bool active)
@@ -93,7 +120,7 @@ public class CrystalTorrent : ThunderBehaviour
         
         if (Time.time - lastHapticTime > nextHapticDelay)
         {
-            nextHapticDelay = Random.Range(0.04f, 0.02f) * hapticDelayMultiplier;
+            nextHapticDelay = UnityEngine.Random.Range(0.04f, 0.02f) * hapticDelayMultiplier;
             lastHapticTime = Time.time;
             item.Haptic(3f, true);
         }
@@ -122,4 +149,5 @@ public class CrystalTorrent : ThunderBehaviour
             skillCrystalTorrent.hitShardEffectData.Spawn(collisionEvent.intersection, Quaternion.LookRotation(-collisionEvent.normal, collisionEvent.colliderComponent.transform.up), collisionEvent.colliderComponent.transform).Play();
         }
     }
+    #endif
 }

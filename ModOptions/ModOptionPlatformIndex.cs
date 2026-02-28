@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if !SDK
+using System.Collections.Generic;
 using ThunderRoad;
 
 namespace Crystallic;
@@ -22,3 +23,4 @@ public class ModOptionPlatformIndex : ModOptionAttribute
                 modOption.defaultValueIndex = qualityLevelValueIndexes[i];
     }
 }
+#endif

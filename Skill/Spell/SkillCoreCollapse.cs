@@ -1,13 +1,16 @@
-﻿using Crystallic.Skill.SpellMerge;
+﻿using System;
+using Crystallic.Skill.SpellMerge;
 using ThunderRoad;
 using ThunderRoad.Skill;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillCoreCollapse : SpellSkillData
 {
+    #if !SDK
     [ModOption("Collapse Enemy Damage", "Controls the amount of damage dealt to enemies."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Core Collapse", 21)]
     public static float enemyDamage = 10f;
 
@@ -19,10 +22,15 @@ public class SkillCoreCollapse : SpellSkillData
 
     [ModOption("Collapse Breakable Damage", "Controls the amount of damage dealt to breakable items like crates and ceramics."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Core Collapse", 21)]
     public static float breakForce = 40f;
+    #endif
 
+    [NonSerialized]
     public EffectData collapseEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string collapseEffectId;
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -72,4 +80,5 @@ public class SkillCoreCollapse : SpellSkillData
             }
         }
     }
+    #endif
 }

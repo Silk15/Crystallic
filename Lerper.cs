@@ -1,7 +1,5 @@
-using System;
+#if !SDK
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
 using ThunderRoad;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -17,7 +15,7 @@ public class Lerper
     public Coroutine rainbowInstance;
     private Coroutine instance;
 
-    public void SetColor(Color target, List<ParticleSystem> particleSystems, string spellId, float time = 1)
+    public void SetColor(Color target, ParticleSystem[] particleSystems, string spellId, float time = 1)
     {
         if (Dye.rainbowMode) 
             return;
@@ -27,7 +25,7 @@ public class Lerper
         
         targetColor = target;
         currentColorType = Dye.GetColorType(currentSpellId, spellId);
-        instance = GameManager.local.StartCoroutine(SetColorCoroutine(particleSystems.ToArray(), target, spellId, time));
+        instance = GameManager.local.StartCoroutine(SetColorCoroutine(particleSystems, target, spellId, time));
     }
 
     public IEnumerator SetColorCoroutine(ParticleSystem[] particles, Color target, string spellId, float tts = 1f)
@@ -123,3 +121,4 @@ public class Lerper
         }
     }
 }
+#endif

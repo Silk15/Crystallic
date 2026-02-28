@@ -11,6 +11,7 @@ namespace Crystallic;
 [Serializable]
 public class SaveData
 {
+    #if !SDK
     public static SaveData instance;
     
     public Dictionary<string, bool> savedCategoryValues = new();
@@ -98,4 +99,5 @@ public class SaveData
         public string requirementName;
         public bool messageSeen = false;
     }
+    #endif
 }

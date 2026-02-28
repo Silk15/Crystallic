@@ -1,12 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using ThunderRoad;
 using ThunderRoad.Skill;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillFractalDissipation : SpellSkillData
 {
+    #if !SDK
     [ModOption("Dissipation Enemy Damage", "Controls the amount of damage dealt to enemies."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Fractal Dissipation", 17)]
     public static float dissipationEnemyDamage = 5f;
     
@@ -18,11 +21,18 @@ public class SkillFractalDissipation : SpellSkillData
     
     [ModOption("Dissipation Breakable Damage", "Controls the amount of damage dealt to breakable items like crates and ceramics."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Fractal Dissipation", 17)]
     public static float dissipationBreakForce = 10f;
+    #endif
     
-    public Dictionary<Creature, float> lastPushTimes = new();
+    [NonSerialized]
     public EffectData dissipationEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string dissipationEffectId;
+    
+    [NonSerialized]
+    public Dictionary<Creature, float> lastPushTimes = new();
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -85,4 +95,5 @@ public class SkillFractalDissipation : SpellSkillData
             }
         }
     }
+    #endif
 }

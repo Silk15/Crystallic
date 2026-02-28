@@ -1,12 +1,15 @@
-using Crystallic.Skill;
+using System;
 using ThunderRoad;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.Imbue;
 
 public class ImbueFireBehaviour : ImbueBehaviour
 {
+    #if !SDK
     [ModOption("Hits Required To Detonate", "The required hit count to detonate an enemy with this crystal imbue.", order = 0), ModOptionCategory("Flaming Crystals", 5), ModOptionSlider, ModOptionIntValues(1, 10, 1)]
     public static int hitsRequiredToDetonate = 2;
     
@@ -18,12 +21,20 @@ public class ImbueFireBehaviour : ImbueBehaviour
     
     [ModOption("Detonation Upwards Force Multiplier", "The upwards force multiplier for detonated enemies.", order = 3), ModOptionCategory("Flaming Crystals", 4), ModOptionSlider, ModOptionFloatValues(0.1f, 10f, 0.1f)]
     public static float upwardsForceMultiplier = 0.1f;
-    
+    #endif
+   
     public AnimationCurve flameCurve = new(new Keyframe(0.0f, 0.5f), new Keyframe(0.05f, 30), new Keyframe(0.1f, 0.5f));
+
+    [NonSerialized]
     public EffectData detonateEffectData;
+    
+    [Dropdown(nameof(GetAllEffectID))]
     public string detonateEffectId = "RemoteDetonation";
+    
+    [NonSerialized]
     public SpellCastProjectile spellCastProjectile;
 
+    #if !SDK
     public override void Load(CrystalImbueSkillData handler, ThunderRoad.Imbue imbue)
     {
         base.Load(handler, imbue);
@@ -72,4 +83,5 @@ public class ImbueFireBehaviour : ImbueBehaviour
             }, 0.4f);
         });
     }
+    #endif
 }

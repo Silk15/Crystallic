@@ -1,17 +1,26 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Crystallic.Skill.Spell;
 using ThunderRoad;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill;
 
 public class SkillFractalEruption : SkillData
 {
+    [NonSerialized]
     public SpellCastCrystallic spellCastCrystallic;
+    
+    [NonSerialized]
     public EffectData projectileEffectData;
+    
+    [Dropdown(nameof(GetAllEffectID))]
     public string projectileEffectId;
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -67,4 +76,5 @@ public class SkillFractalEruption : SkillData
             });
         }
     }
+    #endif
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Crystallic.Skill.Spell;
 using ThunderRoad;
@@ -9,16 +10,24 @@ namespace Crystallic.Skill.Spell;
 
 public class SkillRotaryShardshot : SpellSkillData
 {
+    #if !SDK
     [ModOption("Targeting Angle", "Controls the angle of aim assist."), ModOptionFloatValues(0f, 360f, 1f), ModOptionSlider, ModOptionCategory("Rotary Shardshot", 8)]
     public static float targetingAngle = 20f;
     
     [ModOption("Targeting Max Distance", "Controls the max distance of aim assist."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Rotary Shardshot", 8)]
     public static float targetingDistance = 5f;
+    #endif
     
+    [NonSerialized]
     public Dictionary<Side, Coroutine> rotaryCoroutines = new();
+    
+    [NonSerialized]
     public Dictionary<Side, bool> shardshotEnabled = new();
+    
+    [NonSerialized]
     public SkillCrystalReservoir skillCrystalReservoir;
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -145,4 +154,5 @@ public class SkillRotaryShardshot : SpellSkillData
             return mask;
         }
     }
+    #endif
 }

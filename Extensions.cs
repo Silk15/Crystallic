@@ -1,3 +1,4 @@
+#if !SDK
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -604,11 +605,13 @@ public static class Extensions
             List<ParticleSystem> result = new List<ParticleSystem>();
             
             if (instance.effects != null && instance.effects.Count > 0)
-                foreach (var effectParticle in instance.effects.OfType<EffectParticle>())
-                    
-                    if (effectParticle?.rootParticleSystem?.gameObject != null)
-                        result.AddRange(effectParticle.rootParticleSystem.gameObject.GetComponentsInChildren<ParticleSystem>());
-            
+                for (int i = 0; i < instance.effects.Count; i++)
+                {
+                    var effect = instance.effects[i];
+                    if (effect is EffectParticle effectParticle)
+                        if (effectParticle?.rootParticleSystem?.gameObject != null)
+                            result.AddRange(effectParticle.rootParticleSystem.gameObject.GetComponentsInChildren<ParticleSystem>());
+                }
             particleSystemCache.Add(instance, result);
             return result;
         }
@@ -616,7 +619,7 @@ public static class Extensions
         return existing;
     }
 
-    public static List<ParticleSystem> GetParticleSystems(this List<EffectInstance> instances)
+    public static ParticleSystem[] GetParticleSystems(this List<EffectInstance> instances)
     {
         var particleSystems = new List<ParticleSystem>();
         if (instances != null && instances.Count > 0)
@@ -627,17 +630,24 @@ public static class Extensions
                 if (instance != null && instance.effects != null && instance.effects.Count > 0)
                     particleSystems.AddRange(GetParticleSystems(instance));
             }
+        
+        ParticleSystem[] result = new ParticleSystem[particleSystems.Count];
+        for (int i = 0; i < particleSystems.Count; i++)
+            result[i] = particleSystems[i];
 
-        return particleSystems;
+        return result;
     }
 
     public static ParticleSystem GetRootParticleSystem(this EffectInstance instance)
     {
         if (instance != null)
             if (instance.effects != null && instance.effects.Count > 0)
-                foreach (var effectParticle in instance.effects.OfType<EffectParticle>())
-                    if (effectParticle?.rootParticleSystem?.gameObject != null)
+                for (int i = 0; i < instance.effects.Count; i++)
+                {
+                    var effect = instance.effects[i];
+                    if (effect is EffectParticle effectParticle && effectParticle?.rootParticleSystem?.gameObject != null)
                         return effectParticle.rootParticleSystem;
+                }
         return null;
     }
 
@@ -650,9 +660,11 @@ public static class Extensions
     public static ParticleSystem GetParticleSystem(this EffectInstance instance, string name)
     {
         var systems = instance.GetParticleSystems();
-        foreach (var system in systems)
+        for (int i = 0; i < systems.Count; i++)
+        {
+            var system = systems[i];
             if (system.name == name)
-                return system;
+                return system;}
         return null;
     }
 
@@ -666,9 +678,10 @@ public static class Extensions
     public static void SetColor(this EffectInstance effectInstance, Color color)
     {
         var particleSystems = effectInstance.GetParticleSystems();
-
-        foreach (var particleSystem in particleSystems)
+        
+        for (int i = 0; i < particleSystems.Count; i++)
         {
+            var particleSystem = particleSystems[i];
             var colorOverLifetime = particleSystem.colorOverLifetime;
             colorOverLifetime.enabled = true;
 
@@ -677,8 +690,8 @@ public static class Extensions
             Gradient existingGradient = minMaxGradient.gradient;
             GradientColorKey[] newColorKeys = existingGradient.colorKeys;
 
-            for (int i = 0; i < newColorKeys.Length; i++)
-                newColorKeys[i].color = new Color(color.r, color.g, color.b, newColorKeys[i].color.a);
+            for (int j = 0; j < newColorKeys.Length; j++)
+                newColorKeys[j].color = new Color(color.r, color.g, color.b, newColorKeys[j].color.a);
 
             existingGradient.colorKeys = newColorKeys;
 
@@ -717,3 +730,4 @@ public static class Extensions
                 particleSystem.Stop();
     }
 }
+#endif

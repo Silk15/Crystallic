@@ -7,6 +7,7 @@ namespace Crystallic.Golem;
 
 public class GolemAbilityModule : GameModeModule
 {
+    #if !SDK
     public override IEnumerator OnLoadCoroutine()
     {
         ThunderRoad.Golem.OnLocalGolemSet += OnLocalGolemSet;
@@ -24,4 +25,5 @@ public class GolemAbilityModule : GameModeModule
         foreach (GolemAbilityData golemAbilityData in Catalog.GetDataList<GolemAbilityData>())
             ThunderRoad.Golem.local.abilities.Add(golemAbilityData.GetGolemAbility());
     }
+    #endif
 }

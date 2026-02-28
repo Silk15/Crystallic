@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using ThunderRoad;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Golem;
@@ -8,7 +9,7 @@ public class GolemThrowData<T> : GolemAbilityData<T> where T : GolemThrow
 {
     public AnimationCurve objectEffectIntensityCurve = AnimationCurve.EaseInOut(0.0f, 0.0f, 1f, 1f);
     public List<ThunderRoad.Golem.InflictedStatus> appliedStatuses = new();
-    public LayerMask objectSpawnRaycastMask= 232799233;
+    public LayerMask objectSpawnRaycastMask = 232799233;
     public LayerMask explosionLayerMask = 131073;
     public Vector3 holdPosition;
     public ForceMode forceMode;
@@ -24,12 +25,19 @@ public class GolemThrowData<T> : GolemAbilityData<T> where T : GolemThrow
     public float throwVelocity;
     public float holdDamper;
     public float holdForce;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string summonEffectID;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string objectEffectID;
+        
+    [Dropdown(nameof(GetAllItemID))]
     public string throwObjectID;
     
     public override GolemAbility GetGolemAbility()
     {
+        #if !SDK
         GolemAbility golemAbility = base.GetGolemAbility();
         if (golemAbility is GolemThrow golemThrow)
         {
@@ -56,5 +64,8 @@ public class GolemThrowData<T> : GolemAbilityData<T> where T : GolemThrow
             golemThrow.explosionLayerMask = explosionLayerMask;
         }
         return golemAbility;
+        #else
+        return null;
+        #endif
     }
 }

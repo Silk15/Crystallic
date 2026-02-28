@@ -1,16 +1,17 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using ThunderRoad;
-using UnityEngine.XR;
-using ThunderRoad.Skill;
+using TriInspector;
 using UnityEngine;
+using System.Linq;
+using ThunderRoad.Skill;
 
 namespace Crystallic;
 
 public class BrainModuleCrystal : BrainData.Module
 {
+    #if !SDK
     [ModOption("Allow Player Crystallisation", "Controls whether the player can be crystallised by any source.", order = 1, defaultValueIndex = 1), ModOptionCategory("Crystallisation", -1)]
     public static void TogglePlayerCrystallisation(bool active)
     {
@@ -57,6 +58,7 @@ public class BrainModuleCrystal : BrainData.Module
                 creature.mana?.chargeSpeedMult.Add(brainModuleCrystal, chargeMultiplier);
             }
     }
+    #endif
 
     public static HashSet<Creature> CrystallisedCreatures { get; } = new();
     
@@ -68,16 +70,33 @@ public class BrainModuleCrystal : BrainData.Module
     public static float speedMultiplier = 0f;
     
     public List<BoneEffectPair> boneEffectPairs = new();
+    
+    #if !SDK
+    [NonSerialized]
     public List<EffectInstance> instances = new();
+    #endif
     
+    [NonSerialized]
     public Coroutine crystalliseCoroutine;
-    public BoneEffectPair currentBoneMap;
-    public EffectData endEffectData;
-    public Lerper lerper;
     
+    [NonSerialized]
+    public BoneEffectPair currentBoneMap;
+    
+    [NonSerialized]
+    public EffectData endEffectData;
+    
+    #if !SDK
+    [NonSerialized]
+    public Lerper lerper;
+    #endif
+    
+    [NonSerialized]
     public bool allowBreakForce;
+    
+    [NonSerialized]
     public bool isCrystallised;
     
+    #if !SDK
     public static event OnCrystallise onCreatureCrystallised;
     public event OnCrystallise onCrystallise;
 
@@ -231,13 +250,18 @@ public class BrainModuleCrystal : BrainData.Module
     }
     
     public delegate void OnCrystallise(BrainModuleCrystal brainModuleCrystal, Creature creature, bool active);
+    #endif
 
     [Serializable]
     public class BoneEffectPair
     {
+        [DropdownList(nameof(GetAllCreatureID))]
         public List<string> creatureIds = new();
-        public Dictionary<string, EffectData> boneDataPairs = new();
+        
         public Dictionary<string, string> boneEffectPairs = new();
+        
+        [NonSerialized]
+        public Dictionary<string, EffectData> boneDataPairs = new();
 
         public Dictionary<string, EffectData> Load(Creature creature)
         {
@@ -246,5 +270,7 @@ public class BrainModuleCrystal : BrainData.Module
                     boneDataPairs.Add(stringValues.Key, Catalog.GetData<EffectData>(stringValues.Value));
             return boneDataPairs;
         }
+
+        public TriDropdownList<string> GetAllCreatureID() => Catalog.GetDropdownAllID(Category.Creature);
     }
 }

@@ -12,6 +12,7 @@ public class AttunementRuneBehaviour : ThunderBehaviour
     public Mesh originalMesh;
     public Mesh mesh;
 
+    #if !SDK
     protected override void ManagedOnEnable()
     {
         base.ManagedOnEnable();
@@ -36,4 +37,5 @@ public class AttunementRuneBehaviour : ThunderBehaviour
         originalMesh = null;
         mesh = null;
     }
+    #endif
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Crystallic.Skill.Spell;
+using Newtonsoft.Json;
 using ThunderRoad;
 using ThunderRoad.Skill;
 using UnityEngine;
@@ -19,23 +20,31 @@ public abstract class AttunementSkillData : SpellSkillData
     public bool injectInCast = true;
     public bool injectInThrow = true;
     public bool useCustomAttunementInvocation = false;
+    
+    [NonSerialized]
+    public Gradient defaultGradient = new();
+    
+    [NonSerialized]
+    public Gradient colorGradient = new();
+    
+    [NonSerialized]
+    public bool wasAttunedLastThrow = false;
 
     protected Dictionary<SpellCastCharge, Coroutine> activeCoroutines = new();
-    public Gradient defaultGradient = new();
-    public Gradient colorGradient = new();
-    public bool wasAttunedLastThrow = false;
     protected bool allowAttunement;
     protected int spellHashId;
     protected int crystallicHashId;
     protected Mesh mesh;
 
+    [JsonIgnore]
     public bool IsAttuned { get; protected set; }
 
     public event AttunementDelegate onAttunementStart;
     public event AttunementDelegate onAttunementEnd;
 
     public delegate void AttunementDelegate(SpellCastCrystallic spellCastCrystallic, SpellCastCharge other);
-
+    
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -265,4 +274,5 @@ public abstract class AttunementSkillData : SpellSkillData
 
         onComplete?.Invoke(spellCastCharge);
     }
+    #endif
 }

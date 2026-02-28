@@ -3,19 +3,31 @@ using System.Collections.Generic;
 using ThunderRoad;
 using ThunderRoad.Skill;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillCrystalTorrent : SpellSkillData, IGolemSprayable
 {
-    public Dictionary<Creature, float> lastPushTimes = new();
     public Vector2 crystallisationChance = new(0, 6);
+
+    [NonSerialized]
     public EffectData hitShardEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string hitShardEffectId = "HitShard";
+
+    [NonSerialized]
     public EffectData torrentEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string torrentEffectId;
 
+    [NonSerialized]
+    public Dictionary<Creature, float> lastPushTimes = new();
+
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -76,9 +88,11 @@ public class SkillCrystalTorrent : SpellSkillData, IGolemSprayable
         
         imbue.colliderGroup?.imbueShoot?.GetComponent<CrystalTorrent>()?.Fire(this, imbue.imbueCreature, imbue, false);
     }
+    #endif
 
     public void GolemSprayStart(GolemSpray ability, out Action end)
     {
+        #if !SDK
         CrystalTorrent[] activeTorrents = new CrystalTorrent[ability.sprayPoints.Count];
         for (int index = 0; index < ability.sprayPoints.Count; ++index)
         {
@@ -93,5 +107,8 @@ public class SkillCrystalTorrent : SpellSkillData, IGolemSprayable
             foreach (CrystalTorrent torrent in activeTorrents)
                 torrent.Fire(ability.spraySkillData as SkillCrystalTorrent, ThunderRoad.Golem.local, null, false);
         };
+        #else
+        end = null;
+        #endif
     }
 }

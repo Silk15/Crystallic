@@ -1,4 +1,5 @@
-﻿using ThunderRoad;
+﻿#if !SDK
+using ThunderRoad;
 
 namespace Crystallic.EnemyToggling;
 
@@ -20,3 +21,4 @@ public class ToggledSpell : ToggledSkill
         creature.container.AddSpellContent(id);
     }
 }
+#endif

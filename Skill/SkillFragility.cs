@@ -4,6 +4,7 @@ namespace Crystallic.Skill;
 
 public class SkillFragility : SkillData
 {
+    #if !SDK
     public override void OnSkillLoaded(SkillData skillData, Creature creature)
     {
         base.OnSkillLoaded(skillData, creature);
@@ -18,4 +19,5 @@ public class SkillFragility : SkillData
     }
 
     private void OnCreatureSpawn(Creature creature) => creature.brain.instance.GetModule<BrainModuleCrystal>().allowBreakForce = true;
+    #endif
 }

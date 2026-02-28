@@ -7,6 +7,7 @@ using ThunderRoad;
 using ThunderRoad.Pools;
 using ThunderRoad.Skill.Spell;
 using ThunderRoad.Skill.SpellMerge;
+using TriInspector;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -14,16 +15,31 @@ namespace Crystallic.Skill.Spell.Attunement;
 
 public class SkillArcfan : AttunementSkillData
 {
+    [Dropdown(nameof(GetAllEffectID))]
     public string skillArcwireId = "Arcwire";
-    protected SkillArcwire skillArcwire;
-    protected SpellCastLightning spellCastLightning;
-    protected EffectData minorEffectData;
-    protected SkillShardImplosion skillShardImplosion;
-    protected SkillThunderbolt skillThunderbolt;
     
-    protected EffectData shardHitEffectData;
+    [NonSerialized]
+    public EffectData shardHitEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
     public string shardHitEffectId = "HitComboLightning";
-
+    
+    [NonSerialized]
+    public SkillArcwire skillArcwire;
+    
+    [NonSerialized]
+    public SkillShardImplosion skillShardImplosion;
+    
+    [NonSerialized]
+    public SpellCastLightning spellCastLightning;
+    
+    [NonSerialized]
+    public SkillThunderbolt skillThunderbolt;
+    
+    [NonSerialized]
+    public EffectData minorEffectData;
+    
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -146,4 +162,5 @@ public class SkillArcfan : AttunementSkillData
         prevNode.rb.isKinematic = true;
         newNode.rb.isKinematic = true;
     }
+    #endif
 }

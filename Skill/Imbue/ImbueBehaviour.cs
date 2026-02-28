@@ -1,18 +1,30 @@
+
+using System;
 using ThunderRoad;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Imbue;
 
 public abstract class ImbueBehaviour : ThunderBehaviour
 {
+    [NonSerialized]
     public CrystalImbueSkillData crystalImbueSkillData;
+    
+    #if !SDK
+    [NonSerialized]
     public EffectInstance imbueEffect;
+    #endif
+    
+    [NonSerialized]
     public ThunderRoad.Imbue imbue;
+    
     private float lastTime;
     private float cooldown = 0.05f;
 
     public new bool enabled;
-
+    
+    #if !SDK
     public override ManagedLoops EnabledManagedLoops => ManagedLoops.Update;
 
     public virtual void Load(CrystalImbueSkillData crystalImbueSkillData, ThunderRoad.Imbue imbue)
@@ -32,7 +44,7 @@ public abstract class ImbueBehaviour : ThunderBehaviour
         {
             lastTime = Time.time;
             Hit(collisionInstance, spellData);
-            crystalImbueSkillData.imbueCollisionEffectData?.Spawn(collisionInstance.contactPoint, Quaternion.LookRotation(collisionInstance.contactNormal, collisionInstance.sourceCollider.transform.up), collisionInstance.targetCollider.transform).Play();
+            crystalImbueSkillData.imbueHitEffectData?.Spawn(collisionInstance.contactPoint, Quaternion.LookRotation(collisionInstance.contactNormal, collisionInstance.sourceCollider.transform.up), collisionInstance.targetCollider.transform).Play();
             
             if (crystalImbueSkillData.crystalliseOnHit && collisionInstance?.targetColliderGroup?.collisionHandler?.Entity is Creature creature && creature != null && creature != spellData.spellCaster.mana.creature && collisionInstance.targetMaterial != null && !collisionInstance.targetMaterial.IsMetal())
                 creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), crystalImbueSkillData.spellId), crystalImbueSkillData.spellId));
@@ -57,4 +69,25 @@ public abstract class ImbueBehaviour : ThunderBehaviour
         imbue.OnImbueHit -= OnImbueHit;
         enabled = false;
     }
+    #endif
+    
+    public TriDropdownList<string> GetAllHandPoseID() => Catalog.GetDropdownAllID(Category.HandPose);
+
+    public TriDropdownList<string> GetAllStatusEffectID() => Catalog.GetDropdownAllID(Category.Status);
+
+    public TriDropdownList<string> GetAllSpellID() => Catalog.GetDropdownAllID<SpellData>();
+
+    public TriDropdownList<string> GetAllShardsId() => Catalog.GetDropdownAllID(Category.Item);
+
+    public TriDropdownList<string> GetAllEffectID() => Catalog.GetDropdownAllID(Category.Effect);
+
+    public TriDropdownList<string> GetAllSkillID() => Catalog.GetDropdownAllID(Category.Skill);
+
+    public TriDropdownList<string> GetAllItemID() => Catalog.GetDropdownAllID(Category.Item);
+
+    public TriDropdownList<string> GetAllSkillTreeID() => Catalog.GetDropdownAllID(Category.SkillTree);
+
+    public TriDropdownList<string> GetAllDamagerID() => Catalog.GetDropdownAllID(Category.Damager);
+
+    public TriDropdownList<string> GetAllMaterialID() => Catalog.GetDropdownAllID(Category.Material);
 }

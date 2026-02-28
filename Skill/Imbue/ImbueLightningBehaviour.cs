@@ -1,6 +1,8 @@
-﻿using ThunderRoad;
+﻿using System;
+using ThunderRoad;
 using ThunderRoad.Skill.Spell;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.Imbue;
 
@@ -10,11 +12,17 @@ public class ImbueLightningBehaviour : ImbueBehaviour
     public float boltRange = 3f;
     public float boltPeriod = 0.5f;
     public float boltPeriodVariance = 0.25f;
+    
+    [NonSerialized]
     public ColliderGroup colliderGroup;
+    
+    [NonSerialized]
     public Item item;
+    
     private SpellCastLightning spellCastLightning;
     private float nextBoltTime;
 
+    #if !SDK
     public override ManagedLoops EnabledManagedLoops => ManagedLoops.Update;
 
     public override void Load(CrystalImbueSkillData crystalImbueSkillData, ThunderRoad.Imbue imbue)
@@ -85,4 +93,5 @@ public class ImbueLightningBehaviour : ImbueBehaviour
 
         return boltHit;
     }
+    #endif
 }

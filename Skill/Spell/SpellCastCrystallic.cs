@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using ThunderRoad;
 using ThunderRoad.DebugViz;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
 using QualityLevel = ThunderRoad.QualityLevel;
 using Random = UnityEngine.Random;
@@ -12,36 +14,22 @@ namespace Crystallic.Skill.Spell;
 
 public class SpellCastCrystallic : SpellCastCharge
 {
+    #if !SDK
     [ModOption("Allow Imbue Crystallisation", "Controls whether the crystallic imbue can crystallise people or not.", order = 0), ModOptionCategory("Spell", 1)]
     public static bool allowImbueCrystallisation = true;
-    
+
     [ModOption("Allow Shard Crystallisation", "Controls whether the crystallic shards can crystallise people or not.", order = 1), ModOptionCategory("Spell", 1)]
     public static bool allowShardCrystallisation = true;
-    
+
     [ModOption("Allow Staff Crystallisation", "Controls whether the crystallic staff slam can crystallise people or not.", order = 2), ModOptionCategory("Spell", 1)]
     public static bool allowStaffCrystallisation = true;
-    
+
     [ModOption("Default Shard Count", "Controls how many shards spawn (BY DEFAULT) when the spell is thrown, this value is modified by skills as well.", order = 3), ModOptionSlider, ModOptionCategory("Spell", 1), ModOptionIntValues(1, 12, 1)]
     public static int defaultShardCount = 3;
-    
+    #endif
+
     public AnimationCurve pulseCurve = new(new Keyframe(0.0f, 10f), new Keyframe(0.05f, 25f), new Keyframe(0.1f, 10f));
-    public SkillHyperdetonation skillHyperdetonation;
-    public List<Shard> lastShards = new();
-    public EffectInstance chargeEffect;
-    public EffectData musketCollisionEffectData;
-    public EffectData imbueCollisionEffectData;
-    public EffectData shardEffectData;
-    public EffectData pulseEffectData;
-    public DamagerData shardDamagerData;
-    public EffectData staffSlamEffectData;
-    public ItemData shardItemData;
-    public Vector3 lastShardshotVelocity;
-    public string staffSlamEffectId;
-    public string imbueCollisionEffectId;
-    public string shardDamagerId;
-    public string shardItemId;
-    public string shardEffectId;
-    public string pulseEffectId;
+
     public float slamUpwardsForceMult = 0.35f;
     public float staffSlamMinForce = 10f;
     public float staffSlamMaxForce = 60f;
@@ -49,24 +37,105 @@ public class SpellCastCrystallic : SpellCastCharge
     public float efficiencyPerSkill = 0.5f;
     public float intensityPerSkill = 0.1f;
     public float lastShardshotTime = 0f;
+
+    public float musketRadius = 2f;
+    public float musketForce = 50f;
+    public float musketExplosionRadius = 5f;
+    public float musketExplosionForce = 2f;
+    public float musketHitCrystalDamage = 60f;
+    public float musketExplosionCrystalDamage = 15f;
+    public float musketShootSpeed = 32f;
+    public float musketPlayerForce = 10f;
+
+    [NonSerialized]
+    public EffectData imbueCollisionEffectData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string imbueCollisionEffectId;
+
+    [NonSerialized]
+    public EffectData shardEffectData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string shardEffectId;
+
+    [NonSerialized]
+    public EffectData pulseEffectData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string pulseEffectId;
+
+    [NonSerialized]
+    public DamagerData shardDamagerData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string shardDamagerId;
+
+    [NonSerialized]
+    public EffectData staffSlamEffectData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string staffSlamEffectId;
+
+    [NonSerialized]
+    public ItemData shardItemData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string shardItemId;
+
+    [NonSerialized]
+    public ItemData musketProjectileData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string musketProjectileId = "DynamicAreaProjectile";
+
+    [NonSerialized]
+    public EffectData musketProjectileExplosionEffectData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string musketProjectileExplosionEffectId = "HitMusketCrystallic";
+
+    [NonSerialized]
+    public EffectData musketProjectileEffectData;
+
+    [Dropdown(nameof(GetAllEffectID))]
+    public string musketProjectileEffectId = "CrystalShard";
+
+    [NonSerialized]
+    public Vector3 lastShardshotVelocity;
+
+    [NonSerialized]
+    public SkillHyperdetonation skillHyperdetonation;
+
+    #if !SDK
+    [NonSerialized]
+    public List<Shard> lastShards = new();
+
+    [NonSerialized]
+    public EffectInstance chargeEffect;
+
+    private int unlockedTierBlockers;
     private float cooldown = 0.1f;
     private float lastTime = 1;
-    private int unlockedTierBlockers;
 
     public event SprayDelegate onSprayStart;
     public event SprayDelegate onSprayLoop;
     public event SprayDelegate onSprayEnd;
-    
+
     public event ShardHitEvent onShardHit;
     public event ShardEvent onShardSpawn;
     public event ShardEvent onShardDespawn;
     public event ShardshotStartEvent onShardshotStart;
     public event ShardshotEndEvent onShardshotEnd;
     public event ButtonDelegate onButtonPressed;
-    
+
+    [JsonIgnore]
     public Dictionary<object, float> AdditionalLifetime { get; } = new();
+
+    [JsonIgnore]
     public Dictionary<object, int> AdditionalShards { get; } = new();
 
+    [JsonIgnore]
     public int ShardCount
     {
         get
@@ -77,6 +146,7 @@ public class SpellCastCrystallic : SpellCastCharge
         }
     }
 
+    [JsonIgnore]
     public float ShardLifetime
     {
         get
@@ -88,15 +158,17 @@ public class SpellCastCrystallic : SpellCastCharge
     }
 
     public new SpellCastCrystallic Clone() => MemberwiseClone() as SpellCastCrystallic;
-    
+
     public void AddShardCountModifier(object handler, int count) => AdditionalShards[handler] = count;
+
     public void RemoveShardCountModifier(object handler)
     {
-        if (AdditionalShards.ContainsKey(handler)) 
+        if (AdditionalShards.ContainsKey(handler))
             AdditionalShards.Remove(handler);
     }
 
     public void AddShardLifetimeModifier(object handler, float value) => AdditionalLifetime[handler] = value;
+
     public void RemoveShardLifetimeModifier(object handler)
     {
         if (AdditionalLifetime.ContainsKey(handler))
@@ -106,7 +178,6 @@ public class SpellCastCrystallic : SpellCastCharge
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
-        musketCollisionEffectData = Catalog.GetData<EffectData>("HitMusketCrystallic");
         skillHyperdetonation = Catalog.GetData<SkillHyperdetonation>("Hyperdetonation");
         staffSlamEffectData = Catalog.GetData<EffectData>(staffSlamEffectId);
         pulseEffectData = Catalog.GetData<EffectData>(pulseEffectId);
@@ -114,6 +185,9 @@ public class SpellCastCrystallic : SpellCastCharge
         shardDamagerData = Catalog.GetData<DamagerData>(shardDamagerId);
         imbueCollisionEffectData = Catalog.GetData<EffectData>(imbueCollisionEffectId);
         shardItemData = Catalog.GetData<ItemData>(shardItemId);
+        musketProjectileEffectData = Catalog.GetData<EffectData>(musketProjectileEffectId);
+        musketProjectileExplosionEffectData = Catalog.GetData<EffectData>(musketProjectileExplosionEffectId);
+        musketProjectileData = Catalog.GetData<ItemData>(musketProjectileId);
     }
 
     public override void Load(SpellCaster spellCaster)
@@ -149,10 +223,10 @@ public class SpellCastCrystallic : SpellCastCharge
     public override void Load(ThunderRoad.Imbue imbue)
     {
         base.Load(imbue);
-        
-        if (!Dye.rainbowModeWasActivatedThisSession) 
+
+        if (!Dye.rainbowModeWasActivatedThisSession)
             return;
-        
+
         foreach (Effect effect in imbueEffect.effects)
         {
             if (effect is EffectShader effectShader)
@@ -163,7 +237,7 @@ public class SpellCastCrystallic : SpellCastCharge
                             case QualityLevel.Windows:
                                 effectShader.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleShader.mainColorStart, effectModuleShader.mainColorEnd));
                                 break;
-                            
+
                             case QualityLevel.Android:
                                 effectShader.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleShader.mainNoHdrColorStart, effectModuleShader.mainNoHdrColorEnd));
                                 break;
@@ -178,7 +252,7 @@ public class SpellCastCrystallic : SpellCastCharge
                             case QualityLevel.Windows:
                                 effectParticle.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleParticle.mainColorStart, effectModuleParticle.mainColorEnd));
                                 break;
-                            
+
                             case QualityLevel.Android:
                                 effectParticle.SetMainGradient(ThunderRoad.Utils.CreateGradient(effectModuleParticle.mainNoHdrColorStart, effectModuleParticle.mainNoHdrColorEnd));
                                 break;
@@ -221,13 +295,13 @@ public class SpellCastCrystallic : SpellCastCharge
         base.Throw(velocity);
         int total = 0;
         lastShardshotVelocity = velocity;
-        
-        if (Common.IsAndroid) 
+
+        if (Common.IsAndroid)
             spellCaster.ragdollHand.HapticTick(10);
-        
-        else 
+
+        else
             spellCaster.ragdollHand.PlayHapticClipOver(pulseCurve, 1);
-        
+
         Vector3 origin = spellCaster.magicSource.position + velocity.normalized * 0.1f;
         var effectInstance = pulseEffectData.Spawn(origin, Quaternion.LookRotation(velocity));
         effectInstance.onEffectFinished += OnEffectFinished;
@@ -274,17 +348,17 @@ public class SpellCastCrystallic : SpellCastCharge
         shardItemData.SpawnAsync(shard =>
         {
             shard.ResetColliderCollision();
-            
-            if (colliderLayer != default) 
+
+            if (colliderLayer != default)
                 shard.SetColliderLayer(colliderLayer);
-            
+
             if (ignoredRagdoll != null)
                 shard.IgnoreRagdollCollision(ignoredRagdoll);
-            
+
             if (ignoredColliders != null)
                 foreach (var ignoredCollider in ignoredColliders)
                     shard.IgnoreColliderCollision(ignoredCollider);
-            
+
             shard.SetColliders(false);
             shard.RunAfter(() => shard.SetColliders(true), 0.5f);
             shard.transform.position = shootPos;
@@ -294,11 +368,11 @@ public class SpellCastCrystallic : SpellCastCharge
             FloatHandler floatHandler = new FloatHandler();
             floatHandler.Add(this, damageMultiplier);
             foreach (CollisionHandler collisionHandler in shard.collisionHandlers)
-            foreach (Damager damager in collisionHandler.damagers)
-            {
-                damager.Load(shardDamagerData, collisionHandler);
-                damager.skillDamageMultiplierHandler = floatHandler;
-            }
+                foreach (Damager damager in collisionHandler.damagers)
+                {
+                    damager.Load(shardDamagerData, collisionHandler);
+                    damager.skillDamageMultiplierHandler = floatHandler;
+                }
 
             Shard component = shard.GetComponent<Shard>();
             if (component)
@@ -323,30 +397,110 @@ public class SpellCastCrystallic : SpellCastCharge
 
     public override void OnMusketShoot(bool playEffect = true)
     {
-        if (Physics.Raycast(imbue.colliderGroup.imbueShoot.position, imbue.colliderGroup.imbueShoot.forward, out var hit, 4f, GetMask(), QueryTriggerInteraction.Ignore))
-            if (hit.collider.TryGetComponentInParent(out Creature creature))
-            {
-                creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
-                creature.RunAfter(() => skillHyperdetonation.Detonate(creature, hit.point), 0.25f);
-            }
-        musketCollisionEffectData.Spawn(hit.point, Quaternion.LookRotation(hit.normal)).Play();
         base.OnMusketShoot(playEffect);
-    }
+        Creature shootingCreature = spellCaster?.mana.creature ?? imbue.imbueCreature ?? Player.currentCreature;
+        Item imbueItem = imbue.colliderGroup.collisionHandler.item;
+        Transform imbueShoot = imbue.colliderGroup.imbueShoot;
 
-    public int GetMask()
-    {
-        int mask = 0;
-        mask |= 1 << GameManager.GetLayer(LayerName.Default);
-        mask |= 1 << GameManager.GetLayer(LayerName.Water);
-        mask |= 1 << GameManager.GetLayer(LayerName.PhysicObject);
-        mask |= 1 << GameManager.GetLayer(LayerName.DroppedItem);
-        mask |= 1 << GameManager.GetLayer(LayerName.PlayerLocomotionObject);
-        mask |= 1 << GameManager.GetLayer(LayerName.Ragdoll);
-        mask |= 1 << GameManager.GetLayer(LayerName.NoLocomotion);
-        mask |= 1 << GameManager.GetLayer(LayerName.PlayerLocomotion);
-        mask |= 1 << GameManager.GetLayer(LayerName.BodyLocomotion);
-        mask |= 1 << GameManager.GetLayer(LayerName.NPC);
-        return mask;
+        foreach (ThunderEntity thunderEntity in ThunderEntity.InRadius(imbueShoot.position + imbueShoot.forward.normalized * musketRadius, musketRadius, Filter.AllBut(shootingCreature)))
+            if (thunderEntity != imbueItem && thunderEntity != shootingCreature)
+            {
+                if (thunderEntity is Creature creature && !creature.isPlayer) creature.TryPush(Creature.PushType.Magic, imbueShoot.forward * musketForce, 2);
+                thunderEntity.AddExplosionForce(musketForce, imbueShoot.position, musketRadius * 2f, 0.0f, ForceMode.Impulse);
+            }
+
+        musketProjectileData.SpawnAsync(projectileItem =>
+        {
+            projectileItem.transform.localScale = new Vector3(2, 2, 2);
+            ItemMagicAreaProjectile projectile = projectileItem.GetComponent<ItemMagicAreaProjectile>();
+            foreach (CollisionHandler collisionHandler in projectileItem.collisionHandlers)
+            {
+                foreach (Damager damager in collisionHandler.damagers)
+                    damager.Load(shardDamagerData, collisionHandler);
+            }
+
+            projectile.OnCreatureHit += OnCreatureHit;
+            projectile.OnHandlerHit += OnHandlerHit;
+            projectile.OnHit += OnHit;
+            projectile.explosionEffectData = musketProjectileExplosionEffectData;
+            projectile.homing = false;
+            projectile.guidance = GuidanceMode.NonGuided;
+            projectile.doExplosion = true;
+            projectile.areaExpandDuration = 0.3f;
+            projectile.Fire(imbueShoot.forward * musketShootSpeed, musketProjectileEffectData, imbueItem, shootingCreature.ragdoll, imbueItem.mainHandler.side == Side.Left ? HapticDevice.LeftController : HapticDevice.RightController);
+            projectile.item.physicBody.useGravity = false;
+
+            void OnHit(CollisionInstance collision)
+            {
+                projectile.OnHit -= OnHit;
+                foreach (ThunderEntity thunderEntity in ThunderEntity.InRadius(collision.contactPoint, musketRadius))
+                    if (thunderEntity is Creature creature)
+                    {
+                        if (creature.isPlayer)
+                            if (Player.local.airHelper.inAir) Player.local.locomotion.physicBody.AddExplosionForce(musketPlayerForce, projectile.transform.position, musketExplosionRadius, 1f, ForceMode.VelocityChange);
+                            else
+                            {
+                                if (!creature.isKilled && !creature.isPlayer) creature.ragdoll.SetState(Ragdoll.State.Destabilized);
+                                creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
+                                creature.AddExplosionForce(musketExplosionForce, projectile.transform.position, musketExplosionRadius, 0.0f, ForceMode.Impulse);
+                            }
+                    }
+                    else if (thunderEntity is Item item && item != imbueItem && item.mainHandler == null && !item.data.id.Contains("Shard"))
+                        item.physicBody.AddExplosionForce(musketExplosionForce, projectile.transform.position, musketExplosionRadius, 0.0f, ForceMode.Impulse);
+
+                if (ThunderRoad.Golem.local == null) return;
+
+                SimpleBreakable breakable = collision.targetCollider.GetComponentInParent<SimpleBreakable>();
+
+                if (breakable != null && (!(breakable is GolemCrystal golemCrystal) || !golemCrystal.shieldActive))
+                    breakable.Hit(musketExplosionCrystalDamage);
+
+                foreach (GolemCrystal linkedArenaCrystal in ThunderRoad.Golem.local.linkedArenaCrystals)
+                    if (linkedArenaCrystal.transform.position.PointInRadius(collision.contactPoint, musketRadius) && !linkedArenaCrystal.shieldActive)
+                        linkedArenaCrystal.Hit(musketExplosionCrystalDamage);
+
+                foreach (GolemCrystal crystal in ThunderRoad.Golem.local.crystals)
+                    if (crystal.transform.position.PointInRadius(collision.contactPoint, musketRadius) && !crystal.shieldActive)
+                        crystal.Hit(musketExplosionCrystalDamage);
+
+                GetDirectionsInCone(collision.contactNormal, Random.Range(3, 6), 30f, out var points);
+                foreach (var direction in points)
+                    FireShard(shardEffectData, collision.contactPoint + direction * 0.3f, direction * 12f, ShardLifetime * 1.6f);
+            }
+
+            void OnHandlerHit(CollisionInstance collision, CollisionHandler handler)
+            {
+                projectile.OnHandlerHit -= OnHandlerHit;
+                handler.physicBody.AddForce(collision.impactVelocity * 3f, ForceMode.Impulse);
+                if (handler.item == null || !handler.item.IsHeld()) return;
+                handler.item.ForceUngrabAll();
+            }
+
+            void OnCreatureHit(CollisionInstance collision, Creature creature)
+            {
+                projectile.OnCreatureHit -= OnCreatureHit;
+                if (!Player.selfCollision && creature.isPlayer || creature == shootingCreature) return;
+                creature.Inflict("Crystallised", GameManager.local, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
+                skillHyperdetonation.Detonate(creature, collision.contactPoint);
+            }
+
+            void GetDirectionsInCone(Vector3 inDirection, int count, float angle, out Vector3[] points)
+            {
+                points = new Vector3[count];
+                float cosAngle = Mathf.Cos(angle * Mathf.Deg2Rad);
+
+                int currentPoint = 0;
+                while (currentPoint < count)
+                {
+                    Vector3 direction = Random.onUnitSphere;
+                    if (Vector3.Dot(direction, inDirection) >= cosAngle)
+                    {
+                        points[currentPoint] = direction;
+                        currentPoint++;
+                    }
+                }
+            }
+        }, imbueShoot.position + imbueShoot.forward * 0.1f);
     }
 
     public override bool OnCrystalSlam(CollisionInstance collisionInstance)
@@ -371,7 +525,7 @@ public class SpellCastCrystallic : SpellCastCharge
                         creature.AddForce(Vector3.up * slamUpwardsForceMult, ForceMode.Impulse);
                     }
 
-                    if (allowStaffCrystallisation) 
+                    if (allowStaffCrystallisation)
                         creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
                 }
                     break;
@@ -433,6 +587,7 @@ public class SpellCastCrystallic : SpellCastCharge
                 }
                     break;
             }
+
         return true;
     }
 
@@ -445,7 +600,7 @@ public class SpellCastCrystallic : SpellCastCharge
             shard.Lifetime = ShardLifetime;
             shard.ElapsedLifetime = 0f;
         }
-        
+
         projectile.OnProjectileCollisionEvent -= OnProjectileCollisionEvent;
         if (collisionInstance?.targetColliderGroup?.collisionHandler?.Entity is Creature creature && (shard.crystalliseFunc == null || shard.crystalliseFunc.Invoke(creature)) && (spellCaster == null || spellCaster.mana == null || creature != spellCaster.mana.creature && creature.factionId != spellCaster.mana.creature.factionId) && collisionInstance.targetMaterial != null && allowShardCrystallisation)
             creature.Inflict("Crystallised", this, 5, parameter: new CrystallisedParams(Dye.GetEvaluatedColor(creature.GetCurrentCrystallisationId(), "Crystallic"), "Crystallic"));
@@ -510,11 +665,18 @@ public class SpellCastCrystallic : SpellCastCharge
                 break;
         }
     }
-    
+
     public delegate void ShardHitEvent(SpellCastCrystallic spellCastCrystallic, Shard shard, CollisionInstance collisionInstance);
+
     public delegate void ShardEvent(SpellCastCrystallic spellCastCrystallic, Shard shard);
+
     public delegate void ShardshotStartEvent(SpellCastCrystallic spellCastCrystallic, EffectInstance effectInstance, EventTime eventTime, Vector3 velocity, List<Shard> shards = null);
+
     public delegate void ShardshotEndEvent(SpellCastCrystallic spellCastCrystallic, EffectInstance effectInstance);
+
     public delegate void ButtonDelegate(SpellCastCrystallic spellCastCrystallic, PlayerControl.Hand.Button button, bool pressed, bool casting);
+
     public delegate void SprayDelegate(SpellCastCrystallic spellCastCrystallic);
+
+    #endif
 }

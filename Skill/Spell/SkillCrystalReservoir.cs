@@ -11,15 +11,25 @@ namespace Crystallic.Skill.Spell;
 
 public class SkillCrystalReservoir : SpellSkillData
 {
-    public Dictionary<ArcPointsManager.PointData, EffectInstance> pointEffects = new();
-    public Dictionary<Side, ArcPointsManager> wristHolders = new();
-    public SpellCastCrystallic spellCastCrystallic;
-
+    #if !SDK
     [ModOption("Max Reservoir Shards", "Controls the default maximum shards per wrist."), ModOptionIntValues(1, 15, 1), ModOptionSlider, ModOptionCategory("Crystal Reservoir", 9)]
     public static int maxShards = 5;
 
+    [NonSerialized]
+    public Dictionary<ArcPointsManager.PointData, EffectInstance> pointEffects = new();
+    
+    [NonSerialized]
+    public Dictionary<Side, ArcPointsManager> wristHolders = new();
+    #endif
+    
+    [NonSerialized]
+    public SpellCastCrystallic spellCastCrystallic;
+    
+    #if !SDK
     public event ShardDelegate onShardAdd;
     public event ShardDelegate onShardRemove;
+    
+    public delegate void ShardDelegate(ArcPointsManager pointsManager, ArcPointsManager.PointData point);
 
     public override void OnCatalogRefresh()
     {
@@ -132,12 +142,13 @@ public class SkillCrystalReservoir : SpellSkillData
         else
         {
             ArcPointsManager arcPointsManager = wristHolders[side];
-            for (int i = 0; i < arcPointsManager.numberOfPoints; i++)
-                arcPointsManager.RemovePoint();
 
             arcPointsManager.onPointCreatedEvent -= OnPointCreated;
             arcPointsManager.onPointRemovedEvent -= OnPointRemoved;
-
+            if (arcPointsManager.numberOfPoints > 0)
+                for (int i = 0; i < arcPointsManager.numberOfPoints; i++)
+                    arcPointsManager.RemovePoint();
+            
             Object.Destroy(arcPointsManager.gameObject);
 
             if (wristHolders.ContainsKey(side))
@@ -177,6 +188,5 @@ public class SkillCrystalReservoir : SpellSkillData
             onShardRemove?.Invoke(pointsManager, point);
         }
     }
-
-    public delegate void ShardDelegate(ArcPointsManager pointsManager, ArcPointsManager.PointData point);
+    #endif
 }

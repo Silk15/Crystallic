@@ -1,24 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Crystallic;
 using ThunderRoad;
 using ThunderRoad.Skill;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillHyperdetonation : SpellSkillData
 {
+    public bool requireUnpenetrateToReset = true;
     public float depthRequirementRatio = 0.9f;
     public float eventResetRatio = 0.2f;
-    public bool requireUnpenetrateToReset = true;
     public float minVelocity = 2.5f;
 
-    public string detonationEffectId = "Hyperdetonation";
+    [NonSerialized]
     public EffectData detonationEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string detonationEffectId = "Hyperdetonation";
     
     public List<SkillSpellPair> skillSpellPairs = new();
 
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -70,7 +76,7 @@ public class SkillHyperdetonation : SpellSkillData
 
     public void Detonate(Creature hitCreature, Vector3 forcePosition)
     {
-        hitCreature.Shred();
+        hitCreature.ragdoll.TrySliceAll();
         hitCreature.AddExplosionForce(60, forcePosition, 2.5f, 0.5f, ForceMode.Impulse);
 
         BrainModuleCrystal brainModuleCrystal = hitCreature.brain.instance.GetModule<BrainModuleCrystal>();
@@ -80,4 +86,5 @@ public class SkillHyperdetonation : SpellSkillData
         detonationEffect.SetColor(color);
         detonationEffect.Play();
     }
+    #endif
 }

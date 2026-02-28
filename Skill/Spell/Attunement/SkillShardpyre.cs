@@ -1,21 +1,35 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
 using ThunderRoad.Skill.Spell;
 using ThunderRoad.Skill.SpellMerge;
+using TriInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.Spell.Attunement;
 
 public class SkillShardpyre : AttunementSkillData
 {
-    public Dictionary<Shard, List<ItemMagicProjectile>> spawnedProjectiles = new();
-    protected SkillShardImplosion skillShardImplosion;
-    public SpellCastProjectile spellCastProjectile;
-    public EffectData shardpyreDetonationEffectData;
-    public string shardpyreDetonationEffectId = "ShardpyreDetonation";
     public float maxSpreadAngle = 10f;
+    
+    [NonSerialized]
+    public EffectData shardpyreDetonationEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string shardpyreDetonationEffectId = "ShardpyreDetonation";
+    
+    [NonSerialized]
+    public SkillShardImplosion skillShardImplosion;
+    
+    [NonSerialized]
+    public SpellCastProjectile spellCastProjectile;
+    
+    #if !SDK
+    [NonSerialized]
+    public Dictionary<Shard, List<ItemMagicProjectile>> spawnedProjectiles = new();
 
     public override void OnCatalogRefresh()
     {
@@ -181,4 +195,5 @@ public class SkillShardpyre : AttunementSkillData
             yield return null;
         }
     }
+    #endif
 }

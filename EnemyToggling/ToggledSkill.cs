@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !SDK
+using System;
 using ThunderRoad;
 
 namespace Crystallic.EnemyToggling;
@@ -35,3 +36,4 @@ public class ToggledSkill
         active = false;
     }
 }
+#endif

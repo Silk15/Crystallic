@@ -1,3 +1,4 @@
+#if !SDK
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
@@ -69,23 +70,23 @@ namespace Crystallic
             if (!active || damagers.IsNullOrEmpty())
                 return;
             foreach (Damager damager in damagers)
-            foreach (CollisionInstance collision in damager.collisionHandler.collisions)
-            {
-                if (collision.damageStruct.damager != damager || collision.damageStruct.penetration == 0) continue;
-                if (!hasReachedMaxDepth)
+                foreach (CollisionInstance collision in damager.collisionHandler.collisions)
                 {
-                    if (!(collision.damageStruct.lastDepth >= GetTriggerThreshold(damager.penetrationDepth))) continue;
+                    if (collision.damageStruct.damager != damager || collision.damageStruct.penetration == 0) continue;
+                    if (!hasReachedMaxDepth)
+                    {
+                        if (!(collision.damageStruct.lastDepth >= GetTriggerThreshold(damager.penetrationDepth))) continue;
 
-                    hasReachedMaxDepth = true;
-                    onPenetrateMaxDepthEvent?.Invoke(damager, collision, damager.collisionHandler.item.Velocity, collision.damageStruct.lastDepth);
+                        hasReachedMaxDepth = true;
+                        onPenetrateMaxDepthEvent?.Invoke(damager, collision, damager.collisionHandler.item.Velocity, collision.damageStruct.lastDepth);
+                    }
+                    else if (!requireUnpenetrateToReset && collision.damageStruct.lastDepth < GetResetThreshold(damager.penetrationDepth))
+                    {
+                        onMaxDepthResetEvent?.Invoke(damager, collision, damager.collisionHandler.item.Velocity, collision.damageStruct.lastDepth);
+                        hasReachedMaxDepth = false;
+                    }
+
                 }
-                else if (!requireUnpenetrateToReset && collision.damageStruct.lastDepth < GetResetThreshold(damager.penetrationDepth))
-                {
-                    onMaxDepthResetEvent?.Invoke(damager, collision, damager.collisionHandler.item.Velocity, collision.damageStruct.lastDepth);
-                    hasReachedMaxDepth = false;
-                }
-                    
-            }
         }
 
         private void OnUnpenetrate(Damager damager, CollisionInstance collision, bool wentthrough, EventTime time)
@@ -97,3 +98,4 @@ namespace Crystallic
         public delegate void PenetrateDelegate(Damager damager, CollisionInstance collision, Vector3 velocity, float depth);
     }
 }
+#endif

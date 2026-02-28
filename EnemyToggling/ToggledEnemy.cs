@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if !SDK
+using System.Collections.Generic;
 using ThunderRoad;
 
 namespace Crystallic.EnemyToggling;
@@ -56,3 +57,4 @@ public class ToggledEnemy
                 toggledSkills[i].Unload();
     }
 }
+#endif

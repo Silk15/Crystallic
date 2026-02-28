@@ -3,25 +3,39 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThunderRoad;
+using TriInspector;
 using UnityEngine;
 
 namespace Crystallic.Skill.Imbue;
 
 public class CrystalImbueSkillData : SpellSkillData
 {
+    #if !SDK
     public static List<ThunderRoad.Imbue> imbuesToRevert = new();
     public static Dictionary<Item, string> previousImbues = new();
-   
-    public EffectData imbueCollisionEffectData;
-    public EffectData imbueEffectData;
+    #endif
+    
     public Color colorModifier;
     public string spellId;
-    public string imbueHitEffectId;
-    public string imbueEffectId;
     public string typeAddress;
-    public Type type;
     public bool crystalliseOnHit = true;
     
+    [NonSerialized]
+    public EffectData imbueHitEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string imbueHitEffectId;
+    
+    [NonSerialized]
+    public EffectData imbueEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string imbueEffectId;
+    
+    [NonSerialized]
+    public Type type;
+    
+    #if !SDK
     public static void SaveImbues()
     {
         foreach (ThunderRoad.Imbue imbue in ThunderRoad.Imbue.all) 
@@ -33,7 +47,7 @@ public class CrystalImbueSkillData : SpellSkillData
     {
         base.OnCatalogRefresh();
         previousImbues.Clear();
-        imbueCollisionEffectData = Catalog.GetData<EffectData>(imbueHitEffectId);
+        imbueHitEffectData = Catalog.GetData<EffectData>(imbueHitEffectId);
         imbueEffectData = Catalog.GetData<EffectData>(imbueEffectId);
         type = Type.GetType(typeAddress);
         
@@ -77,4 +91,5 @@ public class CrystalImbueSkillData : SpellSkillData
         if (!components.IsNullOrEmpty()) foreach (var imbueBehavior in components) imbueBehavior?.Unload(imbue);
         previousImbues[imbue.colliderGroup.collisionHandler.item] = imbue.spellCastBase.id;
     }
+    #endif
 }

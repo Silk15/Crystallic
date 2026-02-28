@@ -1,3 +1,4 @@
+#if !SDK
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -132,4 +133,4 @@ public class Dye : ThunderScript
         return ColorType.Solid;
     }
 }
-
+#endif

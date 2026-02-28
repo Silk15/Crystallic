@@ -1,7 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Crystallic.Skill.Imbue;
+using Newtonsoft.Json;
 using ThunderRoad;
 using ThunderRoad.Skill.SpellPower;
 using UnityEngine;
@@ -10,10 +12,16 @@ namespace Crystallic.Skill.Spell.SlowTime;
 
 public class SkillTemporalImbuement : SlowTimeSkillData
 {
+    #if !SDK
     public static List<ThunderRoad.Imbue> activeImbues = new();
-    public Dictionary<string, Gradient[]> cachedTemporalGradients = new();
+    #endif
+    
     public List<SkillSpellPair> skillSpellPairs = new();
 
+    [NonSerialized, JsonIgnore]
+    public Dictionary<string, Gradient[]> cachedTemporalGradients = new();
+    
+    #if !SDK
     public override void OnSkillLoaded(SkillData skillData, Creature creature)
     {
         base.OnSkillLoaded(skillData, creature);
@@ -155,6 +163,12 @@ public class SkillTemporalImbuement : SlowTimeSkillData
     public void TryToggleImbue(ThunderRoad.Imbue imbue, bool active)
     {
         if (imbue == null || imbue.spellCastBase == null) return;
+
+        bool hasActiveCrystalImbue = false;
+        foreach (ImbueBehaviour imbueBehaviour in imbue.GetComponents<ImbueBehaviour>())
+            if (imbueBehaviour.enabled) hasActiveCrystalImbue = true;
+        if (!hasActiveCrystalImbue) return;
+        
         if (imbue.spellCastBase.imbueEffect != null)
             foreach (Effect effect in imbue.spellCastBase.imbueEffect.effects)
                 if (effect is EffectShader effectShader)
@@ -200,4 +214,5 @@ public class SkillTemporalImbuement : SlowTimeSkillData
         effectShader.SetMainGradient(frameGradients[finalFrame]);
         yield return Yielders.EndOfFrame;
     }
+    #endif
 }

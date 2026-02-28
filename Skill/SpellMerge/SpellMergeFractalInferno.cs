@@ -1,10 +1,13 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Crystallic.Skill.Spell;
 using ThunderRoad;
 using ThunderRoad.Skill.Spell;
 using ThunderRoad.Skill.SpellMerge;
+using TriInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.SpellMerge;
 
@@ -14,33 +17,53 @@ public class SpellMergeFractalInferno : SpellMergeData
     
     public float trailRadius = 2f;
     public float trailDuration = 5f;
-
     public float statusDuration = 5f;
     public float statusHeatTransfer = 100f;
-
-    public string flamewallDropEffectId;
-    public EffectData flamewallDropEffectData;
-
-    public string flamewallEffectId;
-    public EffectData flamewallEffectData;
-
-    public string fireEffectId = "InfernalShardshot";
-    public EffectData fireEffectData;
-    
-    public string shardEffectId = "InfernalShard";
-    public EffectData shardEffectData;
-
-    public string statusId = "Burning";
-    public StatusData statusData;
-    
-    public string shardHitEffectId = "HitShardInfernal";
-    public EffectData shardHitEffectData;
-    
-    protected EffectData fireballHitEffectData;
-    public string fireballHitEffectId = "HitComboFire";
-    
     public int shardCount = 3;
 
+    [NonSerialized]
+    public EffectData flamewallDropEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string flamewallDropEffectId;
+
+    [NonSerialized]
+    public EffectData flamewallEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string flamewallEffectId;
+
+    [NonSerialized]
+    public EffectData fireEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string fireEffectId = "InfernalShardshot";
+    
+    [NonSerialized]
+    public EffectData shardEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string shardEffectId = "InfernalShard";
+
+    [NonSerialized]
+    public StatusData statusData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string statusId = "Burning";
+    
+    [NonSerialized]
+    public EffectData shardHitEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string shardHitEffectId = "HitShardInfernal";
+    
+    [NonSerialized]
+    public EffectData fireballHitEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string fireballHitEffectId = "HitComboFire";
+
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -142,4 +165,5 @@ public class SpellMergeFractalInferno : SpellMergeData
         projectile.item.SetColliders(true);
         projectile.homing = true;
     }
+    #endif
 }

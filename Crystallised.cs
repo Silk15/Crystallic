@@ -8,6 +8,7 @@ namespace Crystallic;
 
 public class Crystallised : Status
 {
+    #if !SDK
     public BrainModuleCrystal brainModuleCrystal;
     
     public override bool ReapplyOnValueChange => true;
@@ -58,4 +59,5 @@ public class Crystallised : Status
         if (value is CrystallisedParams crystallisedParams) 
             brainModuleCrystal.SetColor(crystallisedParams.targetColor, crystallisedParams.spellId, crystallisedParams.time);
     }
+    #endif
 }

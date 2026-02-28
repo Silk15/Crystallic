@@ -22,12 +22,14 @@ public class SlowTimeSkillData : SpellSkillData
 
     private void OnTimeScaleChangeEvent(SpellPowerSlowTime spell, float scale)
     {
+        #if !SDK
         if (TimeManager.slowMotionState == TimeManager.SlowMotionState.Starting) OnSlowMotionEnter(spell, scale);
         else
         {
             if (TimeManager.slowMotionState != TimeManager.SlowMotionState.Stopping) return;
             OnSlowMotionExit(spell);
         }
+        #endif
     }
 
     public virtual void OnSlowMotionEnter(SpellPowerSlowTime spellPowerSlowTime, float scale) => timeSlowed = true;

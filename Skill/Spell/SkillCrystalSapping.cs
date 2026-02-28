@@ -1,25 +1,32 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using ThunderRoad;
 using ThunderRoad.Pools;
 using ThunderRoad.Skill.Spell;
+using TriInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Crystallic.Skill.Spell;
 
 public class SkillCrystalSapping : SkillSapStatusApplier
 {
-    public SkillThunderbolt skillThunderbolt;
-    public EffectData pylonEffectData;
-    public string pylonEffectId = "ShardPylon";
-    
+    public Vector2Int minMaxRequiredHits = new(30, 45);
     public int requiredHitsUntilPylon;
     public int currentHits;
-
     public float zapRadius = 3f;
+    
+    [NonSerialized]
+    public SkillThunderbolt skillThunderbolt;
+    
+    [NonSerialized]
+    public EffectData pylonEffectData;
+        
+    [Dropdown(nameof(GetAllEffectID))]
+    public string pylonEffectId = "ShardPylon";
 
-    public Vector2Int minMaxRequiredHits = new(30, 45);
-
+    #if !SDK
     public override void OnCatalogRefresh()
     {
         base.OnCatalogRefresh();
@@ -123,4 +130,5 @@ public class SkillCrystalSapping : SkillSapStatusApplier
         }
         effectInstance.End();
     }
+    #endif
 }

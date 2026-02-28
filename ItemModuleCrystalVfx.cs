@@ -6,6 +6,7 @@ namespace Crystallic;
 
 public class ItemModuleCrystalVfx : ItemModule
 {
+    #if !SDK
     public static readonly int SourceColor = Shader.PropertyToID("Source Color");
     
     public override void OnItemLoaded(Item thisItem)
@@ -41,4 +42,5 @@ public class ItemModuleCrystalVfx : ItemModule
             bodyItem.Despawn();
         });
     }
+    #endif
 }

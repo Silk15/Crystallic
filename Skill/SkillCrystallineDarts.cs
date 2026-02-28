@@ -1,23 +1,33 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Crystallic.Skill.Spell;
 using ThunderRoad;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Crystallic.Skill;
 
 public class SkillCrystallineDarts : SkillData
 {
+    #if !SDK
     [ModOption("Targeting Angle", "Controls the angle of aim assist when you throw a shard, if an enemy is in this radius the shard's velocity move towards it slightly."), ModOptionFloatValues(0f, 360f, 1f), ModOptionSlider, ModOptionCategory("Crystalline Darts", 11)]
     public static float targetingAngle = 20f;
     
     [ModOption("Targeting Max Distance", "Controls the max distance of aim assist."), ModOptionFloatValues(0f, 100f, 1f), ModOptionSlider, ModOptionCategory("Crystalline Darts", 11)]
     public static float targetingDistance = 5f;
     
+    [NonSerialized]
     public Dictionary<ArcPointsManager.PointData, Handle> handles = new();
+    #endif
+    
+    [NonSerialized]
     public SkillCrystalReservoir skillCrystalReservoir;
+    
+    [NonSerialized]
     public SpellCastCrystallic spellCastCrystallic;
 
+    #if !SDK
     public override void OnLateSkillsLoaded(SkillData skillData, Creature creature)
     {
         base.OnLateSkillsLoaded(skillData, creature);
@@ -127,4 +137,5 @@ public class SkillCrystallineDarts : SkillData
             Object.Destroy(handle);
         }
     }
+    #endif
 }
