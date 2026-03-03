@@ -1,23 +1,24 @@
 using ThunderRoad;
 
-namespace Crystallic.Skill;
-
-public class SkillFragility : SkillData
+namespace Crystallic.Skill
 {
-    #if !SDK
-    public override void OnSkillLoaded(SkillData skillData, Creature creature)
+    public class SkillFragility : SkillData
     {
-        base.OnSkillLoaded(skillData, creature);
-        EventManager.onCreatureSpawn -= OnCreatureSpawn;
-        EventManager.onCreatureSpawn += OnCreatureSpawn;
-    }
+        #if !SDK
+        public override void OnSkillLoaded(SkillData skillData, Creature creature)
+        {
+            base.OnSkillLoaded(skillData, creature);
+            EventManager.onCreatureSpawn -= OnCreatureSpawn;
+            EventManager.onCreatureSpawn += OnCreatureSpawn;
+        }
 
-    public override void OnSkillUnloaded(SkillData skillData, Creature creature)
-    {
-        base.OnSkillUnloaded(skillData, creature);
-        EventManager.onCreatureSpawn -= OnCreatureSpawn;
-    }
+        public override void OnSkillUnloaded(SkillData skillData, Creature creature)
+        {
+            base.OnSkillUnloaded(skillData, creature);
+            EventManager.onCreatureSpawn -= OnCreatureSpawn;
+        }
 
-    private void OnCreatureSpawn(Creature creature) => creature.brain.instance.GetModule<BrainModuleCrystal>().allowBreakForce = true;
-    #endif
+        private void OnCreatureSpawn(Creature creature) => creature.brain.instance.GetModule<BrainModuleCrystal>().allowBreakForce = true;
+        #endif
+    }
 }

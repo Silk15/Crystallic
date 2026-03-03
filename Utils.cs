@@ -113,8 +113,8 @@ public static class Utils
     {
         Gradient gradient = new Gradient();
 
-        Color startColor = GetColorOverTime(0.15f);
-        Color endColor = GetColorOverTime(0.15f + 0.25f);
+        Color startColor = GetColorOverTime();
+        Color endColor = GetColorOverTime();
 
         gradient.SetKeys(
             new GradientColorKey[]
@@ -131,7 +131,7 @@ public static class Utils
         return gradient;
     }
     
-    public static Color GetColorOverTime(float speed = 0.1f)
+    public static Color GetColorOverTime(float speed = 0.2f)
     {
         float hsv = Mathf.Repeat(Time.time * speed, 1f);
         return Color.HSVToRGB(hsv, 1f, 1f);

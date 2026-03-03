@@ -2,19 +2,22 @@
 using ThunderRoad;
 using UnityEngine;
 
-namespace Crystallic;
-
-[Serializable]
-public class LiquidCrystallicPotion : LiquidData
+namespace Crystallic
 {
     [Serializable]
-    public class CrystallicChargeIndicator : Indicator
+    public class LiquidCrystallicPotion : LiquidData
     {
-        public override string GetName() => "(Crystallic Potion) Crystallic Charge";
-
-        public override float GetValue(LiquidContainer container)
+        [Serializable]
+        public class CrystallicChargeIndicator : Indicator
         {
-            return 0;
+            public override string GetName() => "(Crystallic Potion) Crystallic Charge";
+
+            #if !SDK
+            public override float GetValue(LiquidContainer container)
+            {
+                return 0;
+            }
+            #endif
         }
     }
 }

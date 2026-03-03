@@ -2,37 +2,38 @@
 using ThunderRoad.Skill;
 using ThunderRoad.Skill.SpellPower;
 
-namespace Crystallic.Skill.Spell.SlowTime;
-
-public class SlowTimeSkillData : SpellSkillData
+namespace Crystallic.Skill.Spell.SlowTime
 {
-    public static bool timeSlowed;
-
-    public override void OnSkillLoaded(SkillData skillData, Creature creature)
+    public class SlowTimeSkillData : SpellSkillData
     {
-        base.OnSkillLoaded(skillData, creature);
-        SpellPowerSlowTime.OnTimeScaleChangeEvent += OnTimeScaleChangeEvent;
-    }
+        public static bool timeSlowed;
 
-    public override void OnSkillUnloaded(SkillData skillData, Creature creature)
-    {
-        base.OnSkillUnloaded(skillData, creature);
-        SpellPowerSlowTime.OnTimeScaleChangeEvent -= OnTimeScaleChangeEvent;
-    }
-
-    private void OnTimeScaleChangeEvent(SpellPowerSlowTime spell, float scale)
-    {
-        #if !SDK
-        if (TimeManager.slowMotionState == TimeManager.SlowMotionState.Starting) OnSlowMotionEnter(spell, scale);
-        else
+        public override void OnSkillLoaded(SkillData skillData, Creature creature)
         {
-            if (TimeManager.slowMotionState != TimeManager.SlowMotionState.Stopping) return;
-            OnSlowMotionExit(spell);
+            base.OnSkillLoaded(skillData, creature);
+            SpellPowerSlowTime.OnTimeScaleChangeEvent += OnTimeScaleChangeEvent;
         }
-        #endif
+
+        public override void OnSkillUnloaded(SkillData skillData, Creature creature)
+        {
+            base.OnSkillUnloaded(skillData, creature);
+            SpellPowerSlowTime.OnTimeScaleChangeEvent -= OnTimeScaleChangeEvent;
+        }
+
+        private void OnTimeScaleChangeEvent(SpellPowerSlowTime spell, float scale)
+        {
+            #if !SDK
+            if (TimeManager.slowMotionState == TimeManager.SlowMotionState.Starting) OnSlowMotionEnter(spell, scale);
+            else
+            {
+                if (TimeManager.slowMotionState != TimeManager.SlowMotionState.Stopping) return;
+                OnSlowMotionExit(spell);
+            }
+            #endif
+        }
+
+        public virtual void OnSlowMotionEnter(SpellPowerSlowTime spellPowerSlowTime, float scale) => timeSlowed = true;
+
+        public virtual void OnSlowMotionExit(SpellPowerSlowTime spellPowerSlowTime) => timeSlowed = false;
     }
-
-    public virtual void OnSlowMotionEnter(SpellPowerSlowTime spellPowerSlowTime, float scale) => timeSlowed = true;
-
-    public virtual void OnSlowMotionExit(SpellPowerSlowTime spellPowerSlowTime) => timeSlowed = false;
 }

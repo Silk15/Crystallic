@@ -3,20 +3,20 @@ using System.Collections.Generic;
 using ThunderRoad;
 using UnityEngine;
 
-namespace Crystallic.Skill;
-
-
-[Serializable]
-public class JointEffect
+namespace Crystallic.Skill
 {
-    #if !SDK
-    public List<EffectInstance> effectInstances;
-    public ConfigurableJoint configurableJoint;
-
-    public JointEffect(ConfigurableJoint configurableJoint)
+    [Serializable]
+    public class JointEffect
     {
-        effectInstances = new List<EffectInstance>();
-        this.configurableJoint = configurableJoint;
+        #if !SDK
+        public List<EffectInstance> effectInstances;
+        public ConfigurableJoint configurableJoint;
+
+        public JointEffect(ConfigurableJoint configurableJoint)
+        {
+            effectInstances = new List<EffectInstance>();
+            this.configurableJoint = configurableJoint;
+        }
+        #endif
     }
-    #endif
 }

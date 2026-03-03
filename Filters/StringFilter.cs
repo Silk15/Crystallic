@@ -1,22 +1,25 @@
+using System;
 using System.Collections.Generic;
 using ThunderRoad;
 
-namespace Crystallic.Filters;
-
-public class StringFilter : ConditionFilter<string, List<string>>
+namespace Crystallic.Filters
 {
-    public override bool Allows(string item)
+    [Serializable]
+    public class StringFilter : ConditionFilter<string, List<string>>
     {
-        bool contains = filter.Contains(item);
-        
-        switch (filterLogic)
+        public override bool Allows(string item)
         {
-            case FilterLogic.AnyExcept:
-                return !contains;
-            case FilterLogic.NoneExcept:
-                return contains;
-            default:
-                return true;
+            bool contains = filter.Contains(item);
+
+            switch (filterLogic)
+            {
+                case FilterLogic.AnyExcept:
+                    return !contains;
+                case FilterLogic.NoneExcept:
+                    return contains;
+                default:
+                    return true;
+            }
         }
     }
 }

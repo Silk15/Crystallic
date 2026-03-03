@@ -3,19 +3,20 @@ using ThunderRoad;
 using UnityEngine;
 using QualityLevel = ThunderRoad.QualityLevel;
 
-namespace Crystallic;
-
-public class ModOptionStripOnPlatform : ModOptionAttribute
+namespace Crystallic
 {
-    public QualityLevel qualityLevel;
-    
-    public ModOptionStripOnPlatform(QualityLevel qualityLevel) => this.qualityLevel = qualityLevel;
-
-    public override void Process()
+    public class ModOptionStripOnPlatform : ModOptionAttribute
     {
-        base.Process();
-        if (Common.GetQualityLevel() == qualityLevel && modOption.uiComponent is MonoBehaviour monoBehaviour)
-            monoBehaviour.gameObject.SetActive(false);
+        public QualityLevel qualityLevel;
+
+        public ModOptionStripOnPlatform(QualityLevel qualityLevel) => this.qualityLevel = qualityLevel;
+
+        public override void Process()
+        {
+            base.Process();
+            if (Common.GetQualityLevel() == qualityLevel && modOption.uiComponent is MonoBehaviour monoBehaviour)
+                monoBehaviour.gameObject.SetActive(false);
+        }
     }
 }
 #endif

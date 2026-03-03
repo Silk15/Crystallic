@@ -2,38 +2,41 @@
 using System;
 using ThunderRoad;
 
-namespace Crystallic.EnemyToggling;
-
-[Serializable]
-public class ToggledSkill
+namespace Crystallic.EnemyToggling
 {
-    public string id;
-    public bool active;
-
-    [NonSerialized]
-    public Creature creature;
-
-    public ToggledSkill(Creature creature, string skillId)
+    [Serializable]
+    public class ToggledSkill
     {
-        this.creature = creature;
-        id = skillId;
-    }
+        public string id;
+        public bool active;
 
-    public ToggledSkill() { }
+        [NonSerialized]
+        public Creature creature;
 
-    public virtual void Load()
-    {
-        active = true;
-        if (creature.HasSkill(id))
-            return;
-        creature.container.AddSkillContent(id);
-    }
+        public ToggledSkill(Creature creature, string skillId)
+        {
+            this.creature = creature;
+            id = skillId;
+        }
 
-    public virtual void Unload()
-    {
-        if (!creature.TryRemoveSkill(id))
-            return;
-        active = false;
+        public ToggledSkill()
+        {
+        }
+
+        public virtual void Load()
+        {
+            active = true;
+            if (creature.HasSkill(id))
+                return;
+            creature.container.AddSkillContent(id);
+        }
+
+        public virtual void Unload()
+        {
+            if (!creature.TryRemoveSkill(id))
+                return;
+            active = false;
+        }
     }
 }
 #endif

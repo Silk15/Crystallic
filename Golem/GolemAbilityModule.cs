@@ -1,29 +1,29 @@
 ﻿using System.Collections;
 using ThunderRoad;
 using ThunderRoad.Modules;
-using UnityEngine;
 
-namespace Crystallic.Golem;
-
-public class GolemAbilityModule : GameModeModule
+namespace Crystallic.Golem
 {
-    #if !SDK
-    public override IEnumerator OnLoadCoroutine()
+    public class GolemAbilityModule : GameModeModule
     {
-        ThunderRoad.Golem.OnLocalGolemSet += OnLocalGolemSet;
-        return base.OnLoadCoroutine();
-    }
+        #if !SDK
+        public override IEnumerator OnLoadCoroutine()
+        {
+            ThunderRoad.Golem.OnLocalGolemSet += OnLocalGolemSet;
+            return base.OnLoadCoroutine();
+        }
 
-    public override void OnUnload()
-    {
-        base.OnUnload();
-        ThunderRoad.Golem.OnLocalGolemSet -= OnLocalGolemSet;
-    }
+        public override void OnUnload()
+        {
+            base.OnUnload();
+            ThunderRoad.Golem.OnLocalGolemSet -= OnLocalGolemSet;
+        }
 
-    private void OnLocalGolemSet()
-    {
-        foreach (GolemAbilityData golemAbilityData in Catalog.GetDataList<GolemAbilityData>())
-            ThunderRoad.Golem.local.abilities.Add(golemAbilityData.GetGolemAbility());
+        private void OnLocalGolemSet()
+        {
+            foreach (GolemAbilityData golemAbilityData in Catalog.GetDataList<GolemAbilityData>())
+                ThunderRoad.Golem.local.abilities.Add(golemAbilityData.GetGolemAbility());
+        }
+        #endif
     }
-    #endif
 }

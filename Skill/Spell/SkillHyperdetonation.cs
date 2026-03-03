@@ -1,90 +1,89 @@
 ﻿using System;
 using System.Collections.Generic;
-using Crystallic;
 using ThunderRoad;
 using ThunderRoad.Skill;
-using ThunderRoad.Skill.Spell;
 using TriInspector;
 using UnityEngine;
 
-namespace Crystallic.Skill.Spell;
-
-public class SkillHyperdetonation : SpellSkillData
+namespace Crystallic.Skill.Spell
 {
-    public bool requireUnpenetrateToReset = true;
-    public float depthRequirementRatio = 0.9f;
-    public float eventResetRatio = 0.2f;
-    public float minVelocity = 2.5f;
-
-    [NonSerialized]
-    public EffectData detonationEffectData;
-        
-    [Dropdown(nameof(GetAllEffectID))]
-    public string detonationEffectId = "Hyperdetonation";
-    
-    public List<SkillSpellPair> skillSpellPairs = new();
-
-    #if !SDK
-    public override void OnCatalogRefresh()
+    public class SkillHyperdetonation : SpellSkillData
     {
-        base.OnCatalogRefresh();
-        detonationEffectData = Catalog.GetData<EffectData>(detonationEffectId);
-    }
+        public bool requireUnpenetrateToReset = true;
+        public float depthRequirementRatio = 0.9f;
+        public float eventResetRatio = 0.2f;
+        public float minVelocity = 0.75f;
 
-    public override void OnImbueLoad(SpellData spell, ThunderRoad.Imbue imbue)
-    {
-        base.OnImbueLoad(spell, imbue);
-        foreach (SkillSpellPair skillSpellPair in skillSpellPairs)
-            if (skillSpellPair.spellId == imbue.spellCastBase.id && imbue.imbueCreature.HasSkill(skillSpellPair.skillId))
-            {
-                MaxDepthDetector maxDepthDetector = imbue.colliderGroup.collisionHandler.item.GetOrAddComponent<MaxDepthDetector>();
-                if (maxDepthDetector == null) 
-                    return;
-                
-                List<Damager> damagers = MaxDepthDetector.GetValidDamagers(imbue.colliderGroup.collisionHandler.damagers, false);
-                
-                if (damagers.Count <= 0) 
-                    return;
-                
-                maxDepthDetector.Activate(this, damagers, depthRequirementRatio, eventResetRatio, requireUnpenetrateToReset);
-                maxDepthDetector.onPenetrateMaxDepthEvent -= OnPenetrateMaxDepthEvent;
-                maxDepthDetector.onPenetrateMaxDepthEvent += OnPenetrateMaxDepthEvent;
-            }
-    }
+        [NonSerialized]
+        public EffectData detonationEffectData;
 
-    public override void OnImbueUnload(SpellData spell, ThunderRoad.Imbue imbue)
-    {
-        base.OnImbueUnload(spell, imbue);
-        MaxDepthDetector maxDepthDetector = imbue.colliderGroup.collisionHandler.item.GetComponent<MaxDepthDetector>();
-        
-        if (maxDepthDetector == null)
-            return;
-        
-        maxDepthDetector.Deactivate(this);
-        maxDepthDetector.onPenetrateMaxDepthEvent -= OnPenetrateMaxDepthEvent;
-    }
-    
-    private void OnPenetrateMaxDepthEvent(Damager damager, CollisionInstance collision, Vector3 velocity, float depth)
-    {
-        Creature hitCreature = collision?.targetColliderGroup?.collisionHandler?.ragdollPart?.ragdoll?.creature;
-        
-        if (!hitCreature || !hitCreature.HasStatus("Crystallised") || velocity.sqrMagnitude < minVelocity * minVelocity || hitCreature.isPlayer)
-            return;
-        
-        Detonate(hitCreature, collision.contactPoint);
-    }
+        [Dropdown(nameof(GetAllEffectID))]
+        public string detonationEffectId = "Hyperdetonation";
 
-    public void Detonate(Creature hitCreature, Vector3 forcePosition)
-    {
-        hitCreature.ragdoll.TrySliceAll();
-        hitCreature.AddExplosionForce(60, forcePosition, 2.5f, 0.5f, ForceMode.Impulse);
+        public List<SkillSpellPair> skillSpellPairs = new();
 
-        BrainModuleCrystal brainModuleCrystal = hitCreature.brain.instance.GetModule<BrainModuleCrystal>();
-        Color color = brainModuleCrystal.lerper.targetColor;
+        #if !SDK
+        public override void OnCatalogRefresh()
+        {
+            base.OnCatalogRefresh();
+            detonationEffectData = Catalog.GetData<EffectData>(detonationEffectId);
+        }
 
-        EffectInstance detonationEffect = detonationEffectData.Spawn(hitCreature.ragdoll.targetPart.transform);
-        detonationEffect.SetColor(color);
-        detonationEffect.Play();
+        public override void OnImbueLoad(SpellData spell, ThunderRoad.Imbue imbue)
+        {
+            base.OnImbueLoad(spell, imbue);
+            foreach (SkillSpellPair skillSpellPair in skillSpellPairs)
+                if (skillSpellPair.spellId == imbue.spellCastBase.id && imbue.imbueCreature.HasSkill(skillSpellPair.skillId))
+                {
+                    MaxDepthDetector maxDepthDetector = imbue.colliderGroup.collisionHandler.item.GetOrAddComponent<MaxDepthDetector>();
+                    if (maxDepthDetector == null)
+                        return;
+
+                    List<Damager> damagers = MaxDepthDetector.GetValidDamagers(imbue.colliderGroup.collisionHandler.damagers, false);
+
+                    if (damagers.Count <= 0)
+                        return;
+
+                    maxDepthDetector.Activate(this, damagers, depthRequirementRatio, eventResetRatio, requireUnpenetrateToReset);
+                    maxDepthDetector.onPenetrateMaxDepthEvent -= OnPenetrateMaxDepthEvent;
+                    maxDepthDetector.onPenetrateMaxDepthEvent += OnPenetrateMaxDepthEvent;
+                }
+        }
+
+        public override void OnImbueUnload(SpellData spell, ThunderRoad.Imbue imbue)
+        {
+            base.OnImbueUnload(spell, imbue);
+            MaxDepthDetector maxDepthDetector = imbue.colliderGroup.collisionHandler.item.GetComponent<MaxDepthDetector>();
+
+            if (maxDepthDetector == null)
+                return;
+
+            maxDepthDetector.Deactivate(this);
+            maxDepthDetector.onPenetrateMaxDepthEvent -= OnPenetrateMaxDepthEvent;
+        }
+
+        private void OnPenetrateMaxDepthEvent(Damager damager, CollisionInstance collision, Vector3 velocity, float depth)
+        {
+            Creature hitCreature = collision?.targetColliderGroup?.collisionHandler?.ragdollPart?.ragdoll?.creature;
+
+            if (!hitCreature || !hitCreature.HasStatus("Crystallised") || velocity.sqrMagnitude < minVelocity * minVelocity || hitCreature.isPlayer)
+                return;
+
+            Detonate(hitCreature, collision.contactPoint);
+        }
+
+        public void Detonate(Creature hitCreature, Vector3 forcePosition)
+        {
+            hitCreature.ragdoll.TrySliceAll();
+            hitCreature.AddExplosionForce(60, forcePosition, 2.5f, 0.5f, ForceMode.Impulse);
+
+            BrainModuleCrystal brainModuleCrystal = hitCreature.brain.instance.GetModule<BrainModuleCrystal>();
+            Color color = brainModuleCrystal.lerper.targetColor;
+
+            EffectInstance detonationEffect = detonationEffectData.Spawn(hitCreature.ragdoll.targetPart.transform);
+            detonationEffect.SetColor(color);
+            detonationEffect.Play();
+        }
+        #endif
     }
-    #endif
 }

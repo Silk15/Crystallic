@@ -1,9 +1,10 @@
 using ThunderRoad;
 
-namespace Crystallic;
-
-public enum ColorType
+namespace Crystallic
 {
-    Mix,
-    Solid
+    public enum ColorType
+    {
+        Mix,
+        Solid
+    }
 }

@@ -1,24 +1,27 @@
 ﻿#if !SDK
 using ThunderRoad;
 
-namespace Crystallic.EnemyToggling;
-
-public class ToggledSpell : ToggledSkill
+namespace Crystallic.EnemyToggling
 {
-    public ToggledSpell(Creature creature, string spellId)
+    public class ToggledSpell : ToggledSkill
     {
-        this.creature = creature;
-        id = spellId;
-    }
+        public ToggledSpell(Creature creature, string spellId)
+        {
+            this.creature = creature;
+            id = spellId;
+        }
 
-    public ToggledSpell() { }
+        public ToggledSpell()
+        {
+        }
 
-    public override void Load()
-    {
-        active = true;
-        if (creature.mana.TryGetSpell(id, out SpellData _))
-            return;
-        creature.container.AddSpellContent(id);
+        public override void Load()
+        {
+            active = true;
+            if (creature.mana.TryGetSpell(id, out SpellData _))
+                return;
+            creature.container.AddSpellContent(id);
+        }
     }
 }
 #endif

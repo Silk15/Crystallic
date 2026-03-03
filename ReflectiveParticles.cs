@@ -5,158 +5,161 @@ using System.Linq;
 using ThunderRoad;
 using UnityEngine;
 
-namespace Crystallic;
-
-public static class ReflectiveParticles 
+namespace Crystallic
 {
-    private static readonly Dictionary<ParticleSystem, (Gradient original, List<InjectedKey> keys)> injectedMap = new();
-
-    public static void Inject(EffectInstance effectInstance, string id, Color color)
+    public static class ReflectiveParticles
     {
-        var particleSystems = effectInstance.GetParticleSystems().ToArray();
-        for (int i = 0; i < particleSystems.Length; i++) Inject(particleSystems[i], id, color);
-    }
+        private static readonly Dictionary<ParticleSystem, (Gradient original, List<InjectedKey> keys)> injectedMap = new();
 
-    public static void Inject(ParticleSystem particleSystem, string id, Color color)
-    {
-        var colLifetime = particleSystem.colorOverLifetime;
-        if (!colLifetime.enabled) return;
-
-        if (!injectedMap.ContainsKey(particleSystem))
+        public static void Inject(EffectInstance effectInstance, string id, Color color)
         {
-            var grad = new Gradient();
-            grad.SetKeys(colLifetime.color.gradient.colorKeys, colLifetime.color.gradient.alphaKeys);
-            injectedMap[particleSystem] = (grad, new List<InjectedKey>());
+            var particleSystems = effectInstance.GetParticleSystems().ToArray();
+            for (int i = 0; i < particleSystems.Length; i++) Inject(particleSystems[i], id, color);
         }
 
-        var entry = injectedMap[particleSystem];
-        entry.keys.Add(new InjectedKey(id, color, 0f));
-   
-        var originalTimes = new HashSet<float>();
-        foreach (var key in entry.original.colorKeys) originalTimes.Add(key.time);
-
-        for (int i = 0; i < entry.keys.Count; i++)
+        public static void Inject(ParticleSystem particleSystem, string id, Color color)
         {
-            float desiredTime = 1f / (entry.keys.Count + 1) * (i + 1);
-            foreach (float t in originalTimes)
-                if (Mathf.Abs(desiredTime - t) < 0.05f)
-                {
-                    desiredTime = t + 0.05f;
-                    break;
-                }
+            var colLifetime = particleSystem.colorOverLifetime;
+            if (!colLifetime.enabled) return;
 
-            entry.keys[i].time = Mathf.Clamp01(desiredTime);
+            if (!injectedMap.ContainsKey(particleSystem))
+            {
+                var grad = new Gradient();
+                grad.SetKeys(colLifetime.color.gradient.colorKeys, colLifetime.color.gradient.alphaKeys);
+                injectedMap[particleSystem] = (grad, new List<InjectedKey>());
+            }
+
+            var entry = injectedMap[particleSystem];
+            entry.keys.Add(new InjectedKey(id, color, 0f));
+
+            var originalTimes = new HashSet<float>();
+            foreach (var key in entry.original.colorKeys) originalTimes.Add(key.time);
+
+            for (int i = 0; i < entry.keys.Count; i++)
+            {
+                float desiredTime = 1f / (entry.keys.Count + 1) * (i + 1);
+                foreach (float t in originalTimes)
+                    if (Mathf.Abs(desiredTime - t) < 0.05f)
+                    {
+                        desiredTime = t + 0.05f;
+                        break;
+                    }
+
+                entry.keys[i].time = Mathf.Clamp01(desiredTime);
+            }
+
+            var newColorKeys = new List<GradientColorKey>(entry.original.colorKeys);
+            foreach (var k in entry.keys) newColorKeys.Add(new GradientColorKey(k.color, k.time));
+
+            newColorKeys.Sort((a, b) => a.time.CompareTo(b.time));
+
+            var newGradient = new Gradient();
+            newGradient.SetKeys(newColorKeys.ToArray(), entry.original.alphaKeys);
+
+            var gradColor = colLifetime.color;
+            gradColor.gradient = newGradient;
+            colLifetime.color = gradColor;
+
+            injectedMap[particleSystem] = (entry.original, entry.keys);
         }
 
-        var newColorKeys = new List<GradientColorKey>(entry.original.colorKeys);
-        foreach (var k in entry.keys) newColorKeys.Add(new GradientColorKey(k.color, k.time));
-
-        newColorKeys.Sort((a, b) => a.time.CompareTo(b.time));
-
-        var newGradient = new Gradient();
-        newGradient.SetKeys(newColorKeys.ToArray(), entry.original.alphaKeys);
-
-        var gradColor = colLifetime.color;
-        gradColor.gradient = newGradient;
-        colLifetime.color = gradColor;
-
-        injectedMap[particleSystem] = (entry.original, entry.keys);
-    }
-
-    public static void RemoveAll(EffectInstance effectInstance)
-    {
-        var particleSystems = effectInstance.GetParticleSystems().ToArray();
-        for (int i = 0; i < particleSystems.Length; i++)
-            foreach (KeyValuePair<ParticleSystem, (Gradient original, List<InjectedKey> keys)> kvp in injectedMap)
-            foreach (var key in kvp.Value.keys)
-                if (kvp.Key == particleSystems[i])
-                    Remove(particleSystems[i], key.id);
-    }
-
-    public static void Remove(EffectInstance effectInstance, string id)
-    {
-        if (effectInstance == null || id.IsNullOrEmptyOrWhitespace()) 
-            return;
-        
-        var particleSystems = effectInstance.GetParticleSystems().ToArray();
-        for (int i = 0; i < particleSystems.Length; i++) Remove(particleSystems[i], id);
-    }
-
-    public static void Remove(ParticleSystem particleSystem, string id)
-    {
-        if (!injectedMap.TryGetValue(particleSystem, out var entry)) return;
-
-        entry.keys.RemoveAll(k => k.id == id);
-
-        if (entry.keys.Count == 0)
+        public static void RemoveAll(EffectInstance effectInstance)
         {
-            Reset(particleSystem);
-            return;
+            var particleSystems = effectInstance.GetParticleSystems().ToArray();
+            for (int i = 0; i < particleSystems.Length; i++)
+                foreach (KeyValuePair<ParticleSystem, (Gradient original, List<InjectedKey> keys)> kvp in injectedMap)
+                    foreach (var key in kvp.Value.keys)
+                        if (kvp.Key == particleSystems[i])
+                            Remove(particleSystems[i], key.id);
         }
 
-        var originalTimes = new HashSet<float>();
-        foreach (var key in entry.original.colorKeys) originalTimes.Add(key.time);
-
-        for (int i = 0; i < entry.keys.Count; i++)
+        public static void Remove(EffectInstance effectInstance, string id)
         {
-            float desiredTime = 1f / (entry.keys.Count + 1) * (i + 1);
-            foreach (float t in originalTimes)
-                if (Mathf.Abs(desiredTime - t) < 0.05f)
-                {
-                    desiredTime = t + 0.05f;
-                    break;
-                }
+            if (effectInstance == null || id.IsNullOrEmptyOrWhitespace())
+                return;
 
-            entry.keys[i].time = Mathf.Clamp01(desiredTime);
+            var particleSystems = effectInstance.GetParticleSystems().ToArray();
+            for (int i = 0; i < particleSystems.Length; i++) Remove(particleSystems[i], id);
         }
 
-        var newColorKeys = new List<GradientColorKey>(entry.original.colorKeys);
-        foreach (var k in entry.keys) newColorKeys.Add(new GradientColorKey(k.color, k.time));
-
-        newColorKeys.Sort((a, b) => a.time.CompareTo(b.time));
-
-        var colLifetime = particleSystem.colorOverLifetime;
-        var gradColor = colLifetime.color;
-        gradColor.gradient = new Gradient();
-        gradColor.gradient.SetKeys(newColorKeys.ToArray(), entry.original.alphaKeys);
-        colLifetime.color = gradColor;
-
-        injectedMap[particleSystem] = (entry.original, entry.keys);
-    }
-
-    public static void Reset(EffectInstance effectInstance)
-    {
-        var particleSystems = effectInstance.GetParticleSystems().ToArray();
-        for (int i = 0; i < particleSystems.Length; i++) if (injectedMap.ContainsKey(particleSystems[i])) Reset(particleSystems[i]);
-    }
-
-    public static void Reset(ParticleSystem particleSystem)
-    {
-        if (!injectedMap.ContainsKey(particleSystem)) return;
-
-        var colLifetime = particleSystem.colorOverLifetime;
-        if (!colLifetime.enabled) return;
-
-        var (original, _) = injectedMap[particleSystem];
-        var col = colLifetime.color;
-        col.gradient = original;
-        colLifetime.color = col;
-
-        injectedMap.Remove(particleSystem);
-    }
-    
-    [Serializable]
-    public class InjectedKey
-    {
-        public string id;
-        public Color color;
-        public float time;
-
-        public InjectedKey(string id, Color color, float time)
+        public static void Remove(ParticleSystem particleSystem, string id)
         {
-            this.id = id;
-            this.color = color;
-            this.time = time;
+            if (!injectedMap.TryGetValue(particleSystem, out var entry)) return;
+
+            entry.keys.RemoveAll(k => k.id == id);
+
+            if (entry.keys.Count == 0)
+            {
+                Reset(particleSystem);
+                return;
+            }
+
+            var originalTimes = new HashSet<float>();
+            foreach (var key in entry.original.colorKeys) originalTimes.Add(key.time);
+
+            for (int i = 0; i < entry.keys.Count; i++)
+            {
+                float desiredTime = 1f / (entry.keys.Count + 1) * (i + 1);
+                foreach (float t in originalTimes)
+                    if (Mathf.Abs(desiredTime - t) < 0.05f)
+                    {
+                        desiredTime = t + 0.05f;
+                        break;
+                    }
+
+                entry.keys[i].time = Mathf.Clamp01(desiredTime);
+            }
+
+            var newColorKeys = new List<GradientColorKey>(entry.original.colorKeys);
+            foreach (var k in entry.keys) newColorKeys.Add(new GradientColorKey(k.color, k.time));
+
+            newColorKeys.Sort((a, b) => a.time.CompareTo(b.time));
+
+            var colLifetime = particleSystem.colorOverLifetime;
+            var gradColor = colLifetime.color;
+            gradColor.gradient = new Gradient();
+            gradColor.gradient.SetKeys(newColorKeys.ToArray(), entry.original.alphaKeys);
+            colLifetime.color = gradColor;
+
+            injectedMap[particleSystem] = (entry.original, entry.keys);
+        }
+
+        public static void Reset(EffectInstance effectInstance)
+        {
+            var particleSystems = effectInstance.GetParticleSystems().ToArray();
+            for (int i = 0; i < particleSystems.Length; i++)
+                if (injectedMap.ContainsKey(particleSystems[i]))
+                    Reset(particleSystems[i]);
+        }
+
+        public static void Reset(ParticleSystem particleSystem)
+        {
+            if (!injectedMap.ContainsKey(particleSystem)) return;
+
+            var colLifetime = particleSystem.colorOverLifetime;
+            if (!colLifetime.enabled) return;
+
+            var (original, _) = injectedMap[particleSystem];
+            var col = colLifetime.color;
+            col.gradient = original;
+            colLifetime.color = col;
+
+            injectedMap.Remove(particleSystem);
+        }
+
+        [Serializable]
+        public class InjectedKey
+        {
+            public string id;
+            public Color color;
+            public float time;
+
+            public InjectedKey(string id, Color color, float time)
+            {
+                this.id = id;
+                this.color = color;
+                this.time = time;
+            }
         }
     }
 }

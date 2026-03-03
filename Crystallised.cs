@@ -4,60 +4,61 @@ using ThunderRoad;
 using ThunderRoad.Skill;
 using UnityEngine;
 
-namespace Crystallic;
-
-public class Crystallised : Status
+namespace Crystallic
 {
-    #if !SDK
-    public BrainModuleCrystal brainModuleCrystal;
-    
-    public override bool ReapplyOnValueChange => true;
-    
-    public override void FirstApply()
+    public class Crystallised : Status
     {
-        base.Apply();
-        if (entity is Creature creature)
-        {
-            brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
-            brainModuleCrystal.StartCrystallise();
-            UpdateColor();
-        }
-    }
+        #if !SDK
+        public BrainModuleCrystal brainModuleCrystal;
 
-    public override void Apply()
-    {
-        base.Apply();
-        UpdateColor();
-    }
-    
-    public override void FullRemove()
-    {
-        base.Remove();
-        if (entity is Creature)
-            brainModuleCrystal.StopCrystallise();
-    }
-    
-    protected override object GetValue()
-    {
-        CrystallisedParams identity = CrystallisedParams.Identity;
-        float latestTime = float.MinValue;
+        public override bool ReapplyOnValueChange => true;
 
-        foreach ((float _, object parameter) in handlers.Values)
+        public override void FirstApply()
         {
-            if (parameter is CrystallisedParams crystallisedParams && crystallisedParams.appliedTime > latestTime)
+            base.Apply();
+            if (entity is Creature creature)
             {
-                latestTime = crystallisedParams.appliedTime;
-                identity = crystallisedParams;
+                brainModuleCrystal = creature.brain.instance.GetModule<BrainModuleCrystal>();
+                brainModuleCrystal.TryCrystallise();
+                UpdateColor();
             }
         }
 
-        return identity;
+        public override void Apply()
+        {
+            base.Apply();
+            UpdateColor();
+        }
+
+        public override void FullRemove()
+        {
+            base.Remove();
+            if (entity is Creature)
+                brainModuleCrystal.TryStopCrystallise();
+        }
+
+        protected override object GetValue()
+        {
+            CrystallisedParams identity = CrystallisedParams.Identity;
+            float latestTime = float.MinValue;
+
+            foreach ((float _, object parameter) in handlers.Values)
+            {
+                if (parameter is CrystallisedParams crystallisedParams && crystallisedParams.appliedTime > latestTime)
+                {
+                    latestTime = crystallisedParams.appliedTime;
+                    identity = crystallisedParams;
+                }
+            }
+
+            return identity;
+        }
+
+        public void UpdateColor()
+        {
+            if (value is CrystallisedParams crystallisedParams)
+                brainModuleCrystal.SetColor(crystallisedParams.targetColor, crystallisedParams.spellId, crystallisedParams.time);
+        }
+        #endif
     }
-    
-    public void UpdateColor()
-    { 
-        if (value is CrystallisedParams crystallisedParams) 
-            brainModuleCrystal.SetColor(crystallisedParams.targetColor, crystallisedParams.spellId, crystallisedParams.time);
-    }
-    #endif
 }

@@ -1,8 +1,9 @@
 using ThunderRoad;
 
-namespace Crystallic;
-
-public class StatusDataCrystallised : StatusData
+namespace Crystallic
 {
-    
+    public class StatusDataCrystallised : StatusData
+    {
+
+    }
 }

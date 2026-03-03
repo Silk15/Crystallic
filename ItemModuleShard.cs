@@ -1,15 +1,16 @@
 using Crystallic.Skill;
 using ThunderRoad;
 
-namespace Crystallic;
-
-public class ItemModuleShard : ItemModule
+namespace Crystallic
 {
-    #if !SDK
-    public override void OnItemLoaded(Item item)
+    public class ItemModuleShard : ItemModule
     {
-        base.OnItemLoaded(item);
-        item.gameObject.GetOrAddComponent<Shard>();
+        #if !SDK
+        public override void OnItemLoaded(Item item)
+        {
+            base.OnItemLoaded(item);
+            item.gameObject.GetOrAddComponent<Shard>();
+        }
+        #endif
     }
-    #endif
 }
